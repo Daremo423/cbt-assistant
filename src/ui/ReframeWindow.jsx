@@ -1,10 +1,8 @@
 import React from 'react';
+import { Typography, Box } from '@mui/material';
 
-export const ReframeWindow = ({ reframes }) => (
-  <div style={{background:'#e3f6f5',padding:'1em',borderRadius:'8px',minHeight:'80px',marginTop:'1em'}}>
-    <b>Reframes:</b>
-    <ul>
-    {reframes.map((r,i) => <li key={i}>{r}</li>)}
-    </ul>
-  </div>
+export const ReframeWindow = ({ suggestion }) => (
+  <Box sx={{ p: 2, backgroundColor: '#e3f6f5', borderRadius: '4px', minHeight: '80px' }}>
+    <Typography variant="body1">{suggestion}</Typography>
+  </Box>
 );

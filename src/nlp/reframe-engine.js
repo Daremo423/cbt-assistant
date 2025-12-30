@@ -1,15 +1,35 @@
 // src/nlp/reframe-engine.js
-// Naive templated reframing for MVP phase
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const reframeTemplates = {
-  'All-or-Nothing': 'Try to find the gray area. Life is rarely all one way or another.',
-  'Should Statements': 'Consider what you want or prefer, not just what you "should" do.',
-  'Labeling': 'Describe the behavior, not your whole self.',
-  'Catastrophizing': 'Focus on most likely outcomes, not just the worst-case.',
-};
+// Access your API key as an environment variable (preferable for security).
+// Make sure to set GEMINI_API_KEY in your environment variables.
+const API_KEY = process.env.GEMINI_API_KEY;
 
-function getReframe(distortionType) {
-  return reframeTemplates[distortionType] || 'Try to identify and rephrase unhelpful thinking.';
+if (!API_KEY) {
+  console.error("GEMINI_API_KEY environment variable not set. Reframing suggestions will not be generated.");
+}
+
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: "gemini-pro" }) : null;
+
+async function getReframe(distortionType, originalText) {
+  if (!model) {
+    return 'Try to identify and rephrase unhelpful thinking. (AI model not loaded)';
+  }
+
+  const prompt = `The user expressed: "${originalText}"
+They are exhibiting a "${distortionType}" cognitive distortion.
+Please provide a concise and helpful reframing suggestion for this thought.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return text.trim();
+  } catch (error) {
+    console.error("Error generating reframing suggestion with Gemini API:", error);
+    return 'Could not generate reframing suggestion at this time. Please try again later.';
+  }
 }
 
 export { getReframe };

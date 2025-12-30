@@ -1,11 +1,18 @@
 import React from 'react';
+import { Typography, Box } from '@mui/material';
 
 export const TranscriptionWindow = ({ transcript, highlights }) => (
-  <div style={{background:'#fff',padding:'1em',borderRadius:'8px',minHeight:'120px',fontFamily:'monospace'}}>
-    {transcript.split(' ').map((word,i)=>
-      highlights[i] 
-        ? <span key={i} style={{background:'#ffe066',borderRadius:'4px'}}>{word+' '}</span>
-        : <span key={i}>{word+' '}</span>
-    )}
-  </div>
+  <Box sx={{ p: 2, border: '1px solid #ccc', borderRadius: '4px', minHeight: '120px', whiteSpace: 'pre-wrap' }}>
+    <Typography component="div">
+      {transcript.split(' ').map((word, i) =>
+        highlights[i] ? (
+          <Box component="span" key={i} sx={{ backgroundColor: '#ffe066', borderRadius: '4px' }}>
+            {word + ' '}
+          </Box>
+        ) : (
+          <span key={i}>{word + ' '}</span>
+        )
+      )}
+    </Typography>
+  </Box>
 );

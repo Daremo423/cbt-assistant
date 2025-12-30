@@ -1,12 +1,21 @@
 import React from 'react';
+import { FormControl, InputLabel, Select, MenuItem, Box } from '@mui/material';
 
-export const SensitivitySelector = ({ value, onChange }) => (
-  <div style={{margin:'1em 0'}}>
-    <label>Sensitivity: </label>
-    <select value={value} onChange={e=>onChange(e.target.value)}>
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
-    </select>
-  </div>
+export const SensitivitySelector = ({ currentSensitivity, onSensitivityChange }) => (
+  <Box sx={{ minWidth: 120 }}>
+    <FormControl fullWidth>
+      <InputLabel id="sensitivity-select-label">Sensitivity</InputLabel>
+      <Select
+        labelId="sensitivity-select-label"
+        id="sensitivity-select"
+        value={currentSensitivity}
+        label="Sensitivity"
+        onChange={(e) => onSensitivityChange(e.target.value)}
+      >
+        <MenuItem value="low">Low</MenuItem>
+        <MenuItem value="medium">Medium</MenuItem>
+        <MenuItem value="high">High</MenuItem>
+      </Select>
+    </FormControl>
+  </Box>
 );

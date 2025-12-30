@@ -1,22 +1,100 @@
 // src/nlp/cd-detector.js
-// Regex-based detection for obvious CDs. To be replaced by BERT/model later.
+import * as tf from '@tensorflow/tfjs';
+import * as use from '@tensorflow-models/universal-sentence-encoder';
 
-const cdPatterns = [
-  { type: 'All-or-Nothing', regex: /(always|never|everyone|nobody|completely|totally)/i },
-  { type: 'Should Statements', regex: /\bshould\b|\bout to\b|\bmust\b|\bhave to\b/i },
-  { type: 'Labeling', regex: /(i[\s']*am|you[\s']*are)[\w\s]*(loser|idiot|stupid|worthless|failure)/i },
-  { type: 'Catastrophizing', regex: /(disaster|ruined|hopeless|worst( case)?|awful|terrible)/i },
-];
+let model;
+let cdReferenceEmbeddings = {};
 
-// sensitivity: 'low', 'medium', 'high'
-function detectCDs(text, sensitivity = 'medium') {
-  let patternsToCheck = cdPatterns;
-  if (sensitivity === 'low') patternsToCheck = cdPatterns.filter((p,i)=>i<=1);
-  if (sensitivity === 'high') patternsToCheck = cdPatterns; // (future: add more patterns)
-  return patternsToCheck.reduce((found, pattern) => {
-    if (pattern.regex.test(text)) found.push(pattern.type);
-    return found;
-  }, []);
+const cdExamples = {
+  'All-or-Nothing': [
+    "I always fail at everything.",
+    "Nobody ever listens to me.",
+    "This is completely ruined.",
+    "If I don't get this perfect, I'm a total failure."
+  ],
+  'Should Statements': [
+    "I should always be happy.",
+    "People ought to agree with me.",
+    "I must never make mistakes.",
+    "You have to understand my point of view."
+  ],
+  'Labeling': [
+    "I am such a loser.",
+    "He is an idiot.",
+    "I'm completely worthless.",
+    "She's a failure."
+  ],
+  'Catastrophizing': [
+    "This is going to be a disaster.",
+    "My life is ruined.",
+    "It's hopeless, nothing will ever get better.",
+    "This is the worst thing that could ever happen."
+  ],
+  // Add more examples for other cognitive distortion types as needed
+};
+
+async function loadModel() {
+  if (!model) {
+    console.log("Loading Universal Sentence Encoder model...");
+    model = await use.load();
+    console.log("Model loaded. Generating reference embeddings...");
+    await generateReferenceEmbeddings();
+    console.log("Reference embeddings generated.");
+  }
 }
 
-export { detectCDs, cdPatterns };
+async function generateReferenceEmbeddings() {
+  for (const cdType in cdExamples) {
+    const examples = cdExamples[cdType];
+    const embeddings = await model.embed(examples);
+    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+    cdReferenceEmbeddings[cdType] = averagedEmbedding;
+  }
+}
+
+// Function to calculate cosine similarity between two tensors
+function cosineSimilarity(vec1, vec2) {
+  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+}
+
+// sensitivity: 'low', 'medium', 'high'
+async function detectCDs(text, sensitivity = 'medium') {
+  if (!model) {
+    await loadModel();
+  }
+
+  const detectedCDs = [];
+  const textEmbedding = await model.embed([text]);
+
+  let threshold;
+  switch (sensitivity) {
+    case 'low':
+      threshold = 0.6; // Lower threshold for less sensitive detection
+      break;
+    case 'medium':
+      threshold = 0.7; // Medium threshold
+      break;
+    case 'high':
+      threshold = 0.8; // Higher threshold for more sensitive detection
+      break;
+    default:
+      threshold = 0.7;
+  }
+
+  for (const cdType in cdReferenceEmbeddings) {
+    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
+    if (similarity.dataSync()[0] > threshold) {
+      detectedCDs.push(cdType);
+    }
+  }
+
+  textEmbedding.dispose();
+  return detectedCDs;
+}
+
+export { detectCDs };
+
+// Initial model load
+if (process.env.NODE_ENV !== 'test') {
+  loadModel();
+}
