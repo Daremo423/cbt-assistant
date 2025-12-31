@@ -1,0 +1,36 @@
+# CBT Assistant Chat History - December 30, 2025
+
+## Summary of Actions
+
+### 1. Initial Project Analysis
+- Verified directory structure and git status.
+- Reviewed `package.json` and core NLP logic in `src/nlp/cd-detector.js` and `src/nlp/reframe-engine.js`.
+
+### 2. Migration & UI Overhaul
+- Migrated Cognitive Distortion detection from regex to **Universal Sentence Encoder (TensorFlow.js)**.
+- Integrated **Google Gemini API** for dynamic, contextual reframing suggestions.
+- Completely rebuilt the UI using **Material UI (MUI)**.
+- Added unit tests for detection logic and UI components.
+
+### 3. Version Control & Security
+- Configured Git with a GitHub no-reply email (`2400242+daremo423@users.noreply.github.com`) to protect privacy.
+- Authenticated via **Personal Access Token (PAT)**.
+- Successfully pushed all changes to: `https://github.com/Daremo423/cbt-assistant.git`.
+
+### 4. Backend Authentication & RBAC
+- Initialized an Express.js backend server.
+- Implemented **JWT-based session management**.
+- Added **Role-Based Access Control (RBAC)** with protected `/api/test/user` and `/api/test/admin` routes.
+- Created `server/auth.test.js` with 10 passing tests for the auth flow.
+
+### 5. Frontend Integration
+- Installed `react-router-dom` and `axios`.
+- Established `api.js` service and `AuthContext.js` for global state management.
+- Created `Login.jsx` and `Signup.jsx` with client-side validation and Material UI styling.
+
+### 6. Documentation
+- Comprehensive updates to `README.md`.
+- Created `docs/API.md`, `CONTRIBUTING.md`, and `CHANGELOG.md`.
+
+---
+**End of Summary**

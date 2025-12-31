@@ -1,17 +1,29 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const path = require('path'); // Import the path module
 const { authController, verifyToken, isAdmin } = require("./auth");
 
 const app = express();
 
+// CORS and Body Parsing
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve static files from React build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '..', 'build')));
+}
+
 // Public Routes
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to CBT Assistant API." });
+  // If serving static files from React build, this root route might not be needed or should be handled by the static serving middleware
+  if (process.env.NODE_ENV === 'production') {
+    res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
+  } else {
+    res.json({ message: "Welcome to CBT Assistant API." });
+  }
 });
 
 app.post("/api/auth/signup", authController.signup);

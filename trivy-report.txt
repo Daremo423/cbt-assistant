@@ -1,0 +1,4 @@
+2025-12-31T01:53:04.104-0800	[34mINFO[0m	Vulnerability scanning is enabled
+2025-12-31T01:53:04.120-0800	[34mINFO[0m	Secret scanning is enabled
+2025-12-31T01:53:04.120-0800	[34mINFO[0m	If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2025-12-31T01:53:04.120-0800	[34mINFO[0m	Please see also https://aquasecurity.github.io/trivy/v0.48/docs/scanner/secret/#recommendation for faster secret detection
