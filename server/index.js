@@ -28,6 +28,7 @@ app.get("/", (req, res) => {
 
 app.post("/api/auth/signup", authController.signup);
 app.post("/api/auth/signin", authController.signin);
+app.post("/api/auth/google", authController.googleSignin);
 
 // Protected Routes
 app.get("/api/test/user", [verifyToken], (req, res) => {

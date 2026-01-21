@@ -16,7 +16,14 @@ const login = (username, password) => {
   });
 };
 
+const googleLogin = (token) => {
+  return apiClient.post('/auth/google', {
+    token
+  });
+};
+
 export default {
   signup,
   login,
+  googleLogin,
 };
