@@ -14,6 +14,7 @@
     "@mui/icons-material": "^5.15.1",
     "@mui/material": "^5.15.1",
     "@mui/styled-engine-sc": "^6.0.0-alpha.9",
+    "@react-oauth/google": "^0.13.4",
     "@tensorflow-models/universal-sentence-encoder": "^1.0.0",
     "@tensorflow/tfjs": "^4.0.0",
     "axios": "^1.13.2",
@@ -24,6 +25,7 @@
     "express": "^5.2.1",
     "gemini-mcp-tool": "^1.1.4",
     "gemini-zod": "^0.1.2",
+    "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -58,7 +60,6 @@
   },
   "overrides": {
     "nth-check": "^2.0.1",
-    "postcss": "^8.4.31",
-    "webpack-dev-server": "^5.2.0"
+    "postcss": "^8.4.31"
   }
 }

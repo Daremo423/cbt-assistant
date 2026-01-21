@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { OAuth2Client } = require('google-auth-library');
 const config = require("./config");
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Simple in-memory user store
 const users = [];
@@ -31,6 +34,14 @@ const authController = {
       return res.status(404).send({ message: "User Not found." });
     }
 
+    // Check if user has a password (might be a Google-only user)
+    if (!user.password) {
+      return res.status(401).send({
+        accessToken: null,
+        message: "Please login with Google."
+      });
+    }
+
     const passwordIsValid = bcrypt.compareSync(
       req.body.password,
       user.password
@@ -54,6 +65,45 @@ const authController = {
       roles: user.roles,
       accessToken: token
     });
+  },
+
+  googleSignin: async (req, res) => {
+    const { token } = req.body;
+    try {
+      const ticket = await client.verifyIdToken({
+          idToken: token,
+          audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      const { email, name } = payload;
+
+      let user = users.find(u => u.email === email);
+      if (!user) {
+        user = {
+          id: users.length + 1,
+          username: name || email,
+          email: email,
+          password: null, // Google users don't have a password
+          roles: ['user']
+        };
+        users.push(user);
+      }
+
+      const accessToken = jwt.sign({ id: user.id, roles: user.roles }, config.secret, {
+        expiresIn: 86400 // 24 hours
+      });
+
+      res.status(200).send({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        roles: user.roles,
+        accessToken: accessToken
+      });
+    } catch (error) {
+      console.error("Google Auth Error:", error);
+      res.status(401).send({ message: "Google Authentication Failed" });
+    }
   }
 };
 

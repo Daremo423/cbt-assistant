@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Container, TextField, Button, Typography, Box, Alert, Paper } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Alert, Paper, Grid } from '@mui/material';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const result = await loginWithGoogle(credentialResponse.credential);
+    if (result.success) {
+      navigate('/');
+    } else {
+      setError(result.message);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google Login Failed');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,6 +90,12 @@ const Login = () => {
             >
               Sign In
             </Button>
+            <Box sx={{ mt: 2, mb: 2, width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+              />
+            </Box>
             <Grid container justifyContent="flex-end">
               <Grid item>
                 <Link to="/signup" style={{ textDecoration: 'none', color: '#1976d2' }}>
@@ -89,8 +109,5 @@ const Login = () => {
     </Container>
   );
 };
-
-// Import Grid explicitly as it was missed in the destructuring above
-import { Grid } from '@mui/material';
 
 export default Login;

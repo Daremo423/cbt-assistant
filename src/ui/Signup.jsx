@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, TextField, Button, Typography, Box, Alert, Paper, Grid } from '@mui/material';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -9,8 +10,21 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const result = await loginWithGoogle(credentialResponse.credential);
+    if (result.success) {
+      navigate('/');
+    } else {
+      setError(result.message);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google Signup Failed');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,6 +112,13 @@ const Signup = () => {
             >
               Sign Up
             </Button>
+            <Box sx={{ mt: 2, mb: 2, width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                text="signup_with"
+              />
+            </Box>
             <Grid container justifyContent="flex-end">
               <Grid item>
                 <Link to="/login" style={{ textDecoration: 'none', color: '#1976d2' }}>
