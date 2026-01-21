@@ -3,29 +3,34 @@ const bcrypt = require("bcryptjs");
 const config = require("./config");
 
 // Simple in-memory user store
-const users = [];
+const users = new Map();
 
 const authController = {
   signup: (req, res) => {
     const user = {
-      id: users.length + 1,
+      id: users.size + 1,
       username: req.body.username,
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, 8),
       roles: req.body.roles || ['user']
     };
 
-    const existingUser = users.find(u => u.username === user.username || u.email === user.email);
-    if (existingUser) {
+    if (users.has(user.username)) {
       return res.status(400).send({ message: "Failed! Username or Email is already in use!" });
     }
 
-    users.push(user);
+    for (const u of users.values()) {
+      if (u.email === user.email) {
+        return res.status(400).send({ message: "Failed! Username or Email is already in use!" });
+      }
+    }
+
+    users.set(user.username, user);
     res.send({ message: "User registered successfully!" });
   },
 
   signin: (req, res) => {
-    const user = users.find(u => u.username === req.body.username);
+    const user = users.get(req.body.username);
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
