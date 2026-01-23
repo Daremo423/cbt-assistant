@@ -53,8 +53,10 @@ async function generateReferenceEmbeddings() {
 }
 
 // Function to calculate cosine similarity between two tensors
+// Note: vec1 and vec2 are expected to be 1D tensors (vectors).
+// We use axis=0 to compute distance across the vector dimension.
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.losses.cosineDistance(vec1, vec2, 0).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
