@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
 const { authController, verifyToken, isAdmin } = require("./auth");
+const { limiter, authLimiter } = require("./rateLimiter");
 
 const app = express();
 
@@ -16,6 +17,9 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'build')));
 }
 
+// Apply global rate limiter
+app.use(limiter);
+
 // Public Routes
 app.get("/", (req, res) => {
   // If serving static files from React build, this root route might not be needed or should be handled by the static serving middleware
@@ -26,6 +30,8 @@ app.get("/", (req, res) => {
   }
 });
 
+// Auth Routes with stricter rate limiting
+app.use("/api/auth", authLimiter);
 app.post("/api/auth/signup", authController.signup);
 app.post("/api/auth/signin", authController.signin);
 app.post("/api/auth/google", authController.googleSignin);
