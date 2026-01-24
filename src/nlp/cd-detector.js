@@ -47,14 +47,12 @@ async function generateReferenceEmbeddings() {
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+    // Average across the examples. Use tidy to clean up intermediates if any (tf.mean usually returns 1 tensor, but good practice)
+    // Actually we need to dispose 'embeddings' explicitly.
+    const averagedEmbedding = tf.tidy(() => tf.mean(embeddings, 0));
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
+    embeddings.dispose();
   }
-}
-
-// Function to calculate cosine similarity between two tensors
-function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -81,12 +79,22 @@ async function detectCDs(text, sensitivity = 'medium') {
       threshold = 0.7;
   }
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
-      detectedCDs.push(cdType);
+  tf.tidy(() => {
+    const userEmbedding = textEmbedding.squeeze();
+    for (const cdType in cdReferenceEmbeddings) {
+      const refEmbedding = cdReferenceEmbeddings[cdType];
+
+      // Compute Cosine Similarity: (A . B) / (|A| * |B|)
+      const dotProduct = tf.sum(tf.mul(userEmbedding, refEmbedding));
+      const normUser = tf.norm(userEmbedding);
+      const normRef = tf.norm(refEmbedding);
+      const similarity = dotProduct.div(normUser.mul(normRef));
+
+      if (similarity.dataSync()[0] > threshold) {
+        detectedCDs.push(cdType);
+      }
     }
-  }
+  });
 
   textEmbedding.dispose();
   return detectedCDs;
