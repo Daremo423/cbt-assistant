@@ -5,18 +5,20 @@ import { SensitivitySelector } from './SensitivitySelector';
 import { detectCDs } from '../nlp/cd-detector';
 import { getReframe } from '../nlp/reframe-engine';
 import { startDeepgramStream } from '../audio/deepgram-client';
+import { useAuth } from '../context/AuthContext';
 import { Container, Typography, TextField, Button, Grid, Card, CardContent, CircularProgress, Box } from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 
 // API Key Checks (no change)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
+const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
+const DEEPGRAM_API_KEY = process.env.REACT_APP_DEEPGRAM_API_KEY;
 
-if (!GEMINI_API_KEY) console.warn("GEMINI_API_KEY not set. Reframing suggestions disabled.");
-if (!DEEPGRAM_API_KEY) console.warn("DEEPGRAM_API_KEY not set. Speech-to-text disabled.");
+if (!GEMINI_API_KEY) console.warn("REACT_APP_GEMINI_API_KEY not set. Reframing suggestions disabled.");
+if (!DEEPGRAM_API_KEY) console.warn("REACT_APP_DEEPGRAM_API_KEY not set. Speech-to-text disabled.");
 
 function App() {
+  const { logout } = useAuth();
   const [inputText, setInputText] = useState('');
   const [detectedCDs, setDetectedCDs] = useState([]);
   const [reframingSuggestion, setReframingSuggestion] = useState('');
@@ -79,9 +81,14 @@ function App() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center">
-        CBT Assistant
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" component="h1">
+          CBT Assistant
+        </Typography>
+        <Button variant="outlined" onClick={logout}>
+          Logout
+        </Button>
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12}>
