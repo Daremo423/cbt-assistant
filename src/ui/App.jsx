@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TranscriptionWindow } from './TranscriptionWindow';
 import { ReframeWindow } from './ReframeWindow';
 import { SensitivitySelector } from './SensitivitySelector';
+import { DisclaimerDialog } from './DisclaimerDialog';
 import { detectCDs } from '../nlp/cd-detector';
 import { getReframe } from '../nlp/reframe-engine';
 import { startDeepgramStream } from '../audio/deepgram-client';
@@ -18,13 +19,21 @@ if (!DEEPGRAM_API_KEY) console.warn("DEEPGRAM_API_KEY not set. Speech-to-text di
 
 function App() {
   const [inputText, setInputText] = useState('');
-  const [detectedCDs, setDetectedCDs] = useState([]);
+  const [detectedCDs, setDetectedCDs] = useState([]); // List of all unique CDs found
   const [reframingSuggestion, setReframingSuggestion] = useState('');
   const [sensitivity, setSensitivity] = useState('medium');
   const [loadingCDs, setLoadingCDs] = useState(false);
   const [loadingReframe, setLoadingReframe] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stopStreamFn, setStopStreamFn] = useState(null);
+
+  // Cache for detection results: Map<sentence, Array<distortion>>
+  const detectionCache = useRef(new Map());
+
+  useEffect(() => {
+    // Clear cache if sensitivity changes, as results might differ
+    detectionCache.current.clear();
+  }, [sensitivity]);
 
   useEffect(() => {
     const detect = async () => {
@@ -34,18 +43,48 @@ function App() {
         return;
       }
       setLoadingCDs(true);
-      const cds = await detectCDs(inputText, sensitivity);
-      setDetectedCDs(cds);
+
+      // Split into sentences (simple regex)
+      const sentences = inputText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+      const currentUniqueCDs = new Set();
+
+      for (const sentence of sentences) {
+        const trimmed = sentence.trim();
+        if (!trimmed) continue;
+
+        let cds;
+        if (detectionCache.current.has(trimmed)) {
+            cds = detectionCache.current.get(trimmed);
+        } else {
+            // Only run detection on new sentences or changed last sentence
+            // Note: For very long text, we might want to avoid re-checking the last sentence if it hasn't changed,
+            // but here we check everything not in cache.
+            // Since cache is persistent, this works for appending text.
+            cds = await detectCDs(trimmed, sensitivity);
+            detectionCache.current.set(trimmed, cds);
+        }
+
+        cds.forEach(cd => currentUniqueCDs.add(cd));
+      }
+
+      setDetectedCDs(Array.from(currentUniqueCDs));
       setLoadingCDs(false);
     };
+
     const handler = setTimeout(() => detect(), 500); // Debounce detection
     return () => clearTimeout(handler);
   }, [inputText, sensitivity]);
 
   useEffect(() => {
     const reframe = async () => {
+      // Reframe based on the latest detected distortion or the first one in the list
+      // Ideally, we reframe the *latest* thought.
       if (detectedCDs.length > 0) {
         setLoadingReframe(true);
+        // We pass the *full text* to reframe engine, but maybe we should pass the latest distorted sentence?
+        // For MVP, passing full text with distortion type is okay, or we can improve context.
+        // Let's stick to existing logic but maybe pick the last added CD?
+        // For now, just pick the first one as before to minimize risk.
         const suggestion = await getReframe(detectedCDs[0], inputText);
         setReframingSuggestion(suggestion);
         setLoadingReframe(false);
@@ -53,8 +92,14 @@ function App() {
         setReframingSuggestion('');
       }
     };
-    reframe();
-  }, [detectedCDs, inputText]);
+    // Only reframe if detectedCDs changes significantly or text stops changing?
+    // Debouncing reframe is handled by dependency on detectedCDs (which is updated debounced)
+    if (detectedCDs.length > 0) {
+        reframe();
+    } else {
+        setReframingSuggestion('');
+    }
+  }, [detectedCDs, inputText]); // dependent on inputText too for context
 
   const handleStartRecording = async () => {
     if (!DEEPGRAM_API_KEY) {
@@ -75,10 +120,54 @@ function App() {
     setStopStreamFn(null);
   };
   
-  const highlightWords = inputText.split(' ').map(() => detectedCDs.length > 0);
+  // Calculate highlights based on sentence detection
+  const calculateHighlights = () => {
+      const words = inputText.split(' ');
+      const highlights = [];
+      let currentSentenceWords = [];
+
+      words.forEach((word) => {
+          currentSentenceWords.push(word);
+          // Check if sentence ends
+          if (/[.!?]$/.test(word)) {
+              const sentenceText = currentSentenceWords.join(' ').trim();
+              // Check cache (fuzzy match might be needed if split differs, but we try exact)
+              // We reconstruct sentence from words, which should match how we constructed sentences for detection (mostly)
+              // Note: regex split vs join(' ') might differ in spacing.
+              // Let's look up by checking if any cached sentence *contains* this text or is equal.
+              // A safer way: iterate cached sentences and check overlap? Too slow.
+              // Simple way: check if cache has this constructed sentence.
+
+              // Issue: `inputText.match` splits by delimiters. `currentSentenceWords.join(' ')` puts spaces.
+              // If inputText had "Hello.World", `match` sees "Hello." and "World".
+              // `split(' ')` sees "Hello.World".
+              // This is the tricky part.
+              // Simplification: Check if the *word* belongs to a distorted part.
+              // Let's assume standard spacing "Hello. World."
+
+              const cds = detectionCache.current.get(sentenceText) || [];
+              const isDistorted = cds.length > 0;
+              currentSentenceWords.forEach(() => highlights.push(isDistorted));
+              currentSentenceWords = [];
+          }
+      });
+
+      // Handle remaining words (incomplete sentence)
+      if (currentSentenceWords.length > 0) {
+          const sentenceText = currentSentenceWords.join(' ').trim();
+           const cds = detectionCache.current.get(sentenceText) || [];
+           const isDistorted = cds.length > 0;
+           currentSentenceWords.forEach(() => highlights.push(isDistorted));
+      }
+
+      return highlights;
+  };
+
+  const highlightWords = calculateHighlights();
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
+      <DisclaimerDialog />
       <Typography variant="h4" component="h1" gutterBottom align="center">
         CBT Assistant
       </Typography>
@@ -118,7 +207,8 @@ function App() {
           <Card>
             <CardContent>
               <Typography variant="h6">Transcription & Analysis</Typography>
-              {loadingCDs ? <CircularProgress /> : <TranscriptionWindow transcript={inputText} highlights={highlightWords} />}
+              {/* Note: TranscriptionWindow maps highlightWords by index. Length must match. */}
+              {loadingCDs && highlightWords.length === 0 ? <CircularProgress /> : <TranscriptionWindow transcript={inputText} highlights={highlightWords} />}
             </CardContent>
           </Card>
         </Grid>
@@ -127,11 +217,9 @@ function App() {
             <Card>
                 <CardContent>
                     <Typography variant="h6">Detected Distortions</Typography>
-                    {loadingCDs ? <CircularProgress /> : (
-                        detectedCDs.length > 0 ? (
-                            <ul>{detectedCDs.map((cd, i) => <li key={i}>{cd}</li>)}</ul>
-                        ) : <p>None detected.</p>
-                    )}
+                    {detectedCDs.length > 0 ? (
+                        <ul>{detectedCDs.map((cd, i) => <li key={i}>{cd}</li>)}</ul>
+                    ) : <p>None detected.</p>}
                 </CardContent>
             </Card>
         </Grid>
