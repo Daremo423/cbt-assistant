@@ -54,7 +54,7 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.losses.cosineDistance(vec1, vec2, 0).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -69,13 +69,13 @@ async function detectCDs(text, sensitivity = 'medium') {
   let threshold;
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8; // Higher threshold for low sensitivity (only obvious matches)
       break;
     case 'medium':
       threshold = 0.7; // Medium threshold
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6; // Lower threshold for high sensitivity (detects subtle matches)
       break;
     default:
       threshold = 0.7;
