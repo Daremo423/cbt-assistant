@@ -16,8 +16,8 @@ An AI-powered Cognitive Behavioral Therapy (CBT) assistant that transcribes spok
 3.  **Configuration:**
     Create a `.env` file in the root directory and add your API keys:
     ```env
-    GEMINI_API_KEY=YOUR_GOOGLE_GEMINI_KEY
-    DEEPGRAM_API_KEY=YOUR_DEEPGRAM_API_KEY
+    REACT_APP_GEMINI_API_KEY=YOUR_GOOGLE_GEMINI_KEY
+    REACT_APP_DEEPGRAM_API_KEY=YOUR_DEEPGRAM_API_KEY
     ```
 
 ## Usage
