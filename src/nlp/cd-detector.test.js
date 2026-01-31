@@ -4,33 +4,28 @@ jest.mock('@tensorflow-models/universal-sentence-encoder', () => ({
   load: jest.fn(),
 }));
 
-const createMockSqueezedTensor = (similarityValue = 0.9) => ({
-  neg: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  add: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  dataSync: jest.fn(() => [similarityValue]),
-  dispose: jest.fn(),
-});
-
-const mockTensor = {
-  squeeze: jest.fn(() => createMockSqueezedTensor()),
-  dispose: jest.fn(),
-};
+// We need to define the mocks so they are accessible, but jest.mock runs first.
+// A common pattern is to just define basic structure in mock, and then refine in tests.
 
 jest.mock('@tensorflow/tfjs', () => {
   const originalTf = jest.requireActual('@tensorflow/tfjs');
+
+  const mockTensorResult = {
+      dataSync: jest.fn(() => [0.9]),
+      dispose: jest.fn()
+  };
+
+  const mockTensor = {
+      squeeze: jest.fn(() => mockTensorResult),
+      dispose: jest.fn()
+  };
+
   return {
     ...originalTf,
-    mean: jest.fn((tensor) => mockTensor), // Always return mockTensor
-    metrics: {
-      ...originalTf.metrics,
-      cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)), // Default high similarity
-    },
+    mean: jest.fn(() => mockTensor),
+    mul: jest.fn(() => mockTensor),
+    sum: jest.fn(() => mockTensorResult),
     tensor2d: jest.fn(() => mockTensor),
-    equal: jest.fn(() => ({
-      all: jest.fn(() => ({
-        dataSync: jest.fn(() => [1]),
-      })),
-    })),
   };
 });
 
@@ -39,11 +34,22 @@ describe('detectCDs', () => {
   let use;
   let tf;
 
+  // Helper to create a result tensor
+  const createMockResult = (val) => ({
+      dataSync: jest.fn(() => [val]),
+      dispose: jest.fn()
+  });
+
   beforeEach(() => {
     jest.resetModules();
     ({ detectCDs } = require('./cd-detector'));
     use = require('@tensorflow-models/universal-sentence-encoder');
     tf = require('@tensorflow/tfjs');
+
+    const mockTensor = {
+        squeeze: jest.fn(() => createMockResult(0.9)),
+        dispose: jest.fn()
+    };
 
     mockEmbed = jest.fn(() => Promise.resolve(mockTensor));
     use.load.mockResolvedValue({ embed: mockEmbed });
@@ -54,28 +60,27 @@ describe('detectCDs', () => {
   });
 
   test('should return an empty array if no cognitive distortions are detected', async () => {
-    // Simulate low similarity for all CDs
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
+    // Simulate low similarity (sum result)
+    tf.sum.mockReturnValue(createMockResult(0.1));
+
     const text = 'This is a neutral sentence.';
     const result = await detectCDs(text);
+
     expect(result).toEqual([]);
     expect(use.load).toHaveBeenCalledTimes(1);
     expect(mockEmbed).toHaveBeenCalled();
   });
 
   test('should detect "All-or-Nothing" distortion', async () => {
-    // Mock cosineDistance to return high similarity for the relevant CD type
-    // This requires knowing the order of CD types being checked in detectCDs
-    // For simplicity, we'll make all cosine distances high enough to trigger detection
-    // and then filter based on the expected outcome.
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
-      // In a real scenario, you might inspect vec1/vec2 to determine which CD is being checked
-      // For now, we'll just return a high similarity for all.
-      return createMockSqueezedTensor(0.95);
-    });
+    // Simulate high similarity
+    // detectCDs uses tf.sum(tf.mul(...))
+    // We mock tf.sum to return a high value
+    tf.sum.mockReturnValue(createMockResult(0.95));
 
     const text = 'I always fail at everything.';
+    // sensitivity 'high' uses threshold 0.6. 0.95 > 0.6.
     const result = await detectCDs(text, 'high');
+
     expect(result).toContain('All-or-Nothing');
     expect(use.load).toHaveBeenCalledTimes(1);
     expect(mockEmbed).toHaveBeenCalled();
