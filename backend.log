@@ -1,5 +1,0 @@
-
-> cbt-assistant@1.2.0 server
-> node server/index.js
-
-Server is running on port 8080.

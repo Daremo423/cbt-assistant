@@ -59,6 +59,8 @@
   },
   "overrides": {
     "nth-check": "^2.0.1",
-    "postcss": "^8.4.31"
+    "postcss": "^8.4.31",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "fast-xml-parser": "^5.3.4"
   }
 }
