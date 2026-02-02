@@ -6,37 +6,47 @@ const config = require("./config");
 const users = [];
 
 const authController = {
-  signup: (req, res) => {
-    const user = {
-      id: users.length + 1,
-      username: req.body.username,
-      email: req.body.email,
-      password: bcrypt.hashSync(req.body.password, 8),
-      roles: req.body.roles || ['user']
-    };
+  signup: async (req, res) => {
+    try {
+      const user = {
+        id: users.length + 1,
+        username: req.body.username,
+        email: req.body.email,
+        password: await bcrypt.hash(req.body.password, 8),
+        roles: req.body.roles || ['user']
+      };
 
-    const existingUser = users.find(u => u.username === user.username || u.email === user.email);
-    if (existingUser) {
-      return res.status(400).send({ message: "Failed! Username or Email is already in use!" });
+      const existingUser = users.find(u => u.username === user.username || u.email === user.email);
+      if (existingUser) {
+        return res.status(400).send({ message: "Failed! Username or Email is already in use!" });
+      }
+
+      users.push(user);
+      res.send({ message: "User registered successfully!" });
+    } catch (error) {
+      res.status(500).send({ message: error.message });
     }
-
-    users.push(user);
-    res.send({ message: "User registered successfully!" });
   },
 
-  signin: (req, res) => {
-    const user = users.find(u => u.username === req.body.username);
+  signin: async (req, res) => {
+    try {
+      const user = users.find(u => u.username === req.body.username);
 
-    if (!user) {
-      return res.status(404).send({ message: "User Not found." });
-    }
+      if (!user) {
+        return res.status(404).send({ message: "User Not found." });
+      }
 
-    const passwordIsValid = bcrypt.compareSync(
-      req.body.password,
-      user.password
-    );
+      // Explicit check for null password (e.g. Google Auth users)
+      if (!user.password) {
+         return res.status(401).send({ message: "Invalid Password!" });
+      }
 
-    if (!passwordIsValid) {
+      const passwordIsValid = await bcrypt.compare(
+        req.body.password,
+        user.password
+      );
+
+      if (!passwordIsValid) {
       return res.status(401).send({
         accessToken: null,
         message: "Invalid Password!"
@@ -54,6 +64,9 @@ const authController = {
       roles: user.roles,
       accessToken: token
     });
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
   }
 };
 
