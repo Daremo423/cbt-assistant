@@ -33,7 +33,7 @@ describe('SensitivitySelector', () => {
 
     // Wait for the option to be visible and click it
     const option = await screen.findByRole('option', { name: 'High' });
-    await userEvent.click(option);
+    fireEvent.click(option);
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
