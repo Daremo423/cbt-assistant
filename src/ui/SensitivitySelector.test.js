@@ -27,8 +27,12 @@ describe('SensitivitySelector', () => {
     const handleChange = jest.fn();
     render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
 
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByText('High'));
+    const select = screen.getByRole('combobox');
+    await userEvent.click(select);
+
+    // Wait for the option to be visible
+    const option = await screen.findByRole('option', { name: 'High' });
+    await userEvent.click(option);
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
