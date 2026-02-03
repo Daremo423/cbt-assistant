@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { SensitivitySelector } from './SensitivitySelector';
@@ -15,7 +15,8 @@ describe('SensitivitySelector', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('Medium');
 
     // Check if all options are present (by opening the select)
-    await userEvent.click(screen.getByRole('combobox'));
+    // Use mouseDown to avoid pointer event interception issues in tests
+    fireEvent.mouseDown(screen.getByRole('combobox'));
     const listbox = await screen.findByRole('listbox');
     expect(listbox).toBeInTheDocument();
     expect(within(listbox).getByText('Low')).toBeInTheDocument();
@@ -27,8 +28,12 @@ describe('SensitivitySelector', () => {
     const handleChange = jest.fn();
     render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
 
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByText('High'));
+    // Use mouseDown to open the select
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+
+    // Wait for the option to be visible and click it
+    const option = await screen.findByRole('option', { name: 'High' });
+    fireEvent.click(option);
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
