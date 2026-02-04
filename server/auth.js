@@ -31,6 +31,14 @@ const authController = {
       return res.status(404).send({ message: "User Not found." });
     }
 
+    // Handle users with no password (e.g., Google Auth users)
+    if (!user.password) {
+      return res.status(401).send({
+        accessToken: null,
+        message: "Invalid Password! This account uses external authentication."
+      });
+    }
+
     const passwordIsValid = bcrypt.compareSync(
       req.body.password,
       user.password
