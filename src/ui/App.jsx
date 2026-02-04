@@ -5,7 +5,12 @@ import { SensitivitySelector } from './SensitivitySelector';
 import { detectCDs } from '../nlp/cd-detector';
 import { getReframe } from '../nlp/reframe-engine';
 import { startDeepgramStream } from '../audio/deepgram-client';
-import { Container, Typography, TextField, Button, Grid, Card, CardContent, CircularProgress, Box } from '@mui/material';
+import { playBeep } from '../audio/beep-handler';
+import {
+  Container, Typography, TextField, Button, Grid, Card, CardContent,
+  CircularProgress, Box, Dialog, DialogTitle, DialogContent,
+  DialogContentText, DialogActions
+} from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 
@@ -25,6 +30,7 @@ function App() {
   const [loadingReframe, setLoadingReframe] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stopStreamFn, setStopStreamFn] = useState(null);
+  const [openDisclaimer, setOpenDisclaimer] = useState(true);
 
   useEffect(() => {
     const detect = async () => {
@@ -35,6 +41,12 @@ function App() {
       }
       setLoadingCDs(true);
       const cds = await detectCDs(inputText, sensitivity);
+
+      // Play beep if new distortions are detected or if the list changes
+      if (cds.length > 0 && JSON.stringify(cds) !== JSON.stringify(detectedCDs)) {
+        playBeep();
+      }
+
       setDetectedCDs(cds);
       setLoadingCDs(false);
     };
@@ -153,6 +165,32 @@ function App() {
           </Card>
         </Grid>
       </Grid>
+
+      <Dialog
+        open={openDisclaimer}
+        onClose={() => setOpenDisclaimer(false)}
+        aria-labelledby="disclaimer-dialog-title"
+        aria-describedby="disclaimer-dialog-description"
+      >
+        <DialogTitle id="disclaimer-dialog-title">
+          {"Legal Disclaimer"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="disclaimer-dialog-description">
+            This application is an AI-powered tool designed for self-reflection and journaling.
+            <strong> It is NOT a substitute for professional mental health advice, diagnosis, or treatment.</strong>
+            <br /><br />
+            If you are in crisis, experiencing a medical emergency, or have thoughts of self-harm, please contact a professional doctor, therapist, or emergency services immediately.
+            <br /><br />
+            By using this application, you acknowledge that you understand this disclaimer and that the creators of this software accept no liability for any actions taken based on its output.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDisclaimer(false)} variant="contained" autoFocus>
+            I Understand
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
