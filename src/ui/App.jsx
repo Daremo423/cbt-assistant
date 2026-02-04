@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import Login from './Login';
+import Signup from './Signup';
 import { TranscriptionWindow } from './TranscriptionWindow';
 import { ReframeWindow } from './ReframeWindow';
 import { SensitivitySelector } from './SensitivitySelector';
@@ -9,14 +13,24 @@ import { Container, Typography, TextField, Button, Grid, Card, CardContent, Circ
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 
-// API Key Checks (no change)
+// API Key Checks
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 
 if (!GEMINI_API_KEY) console.warn("GEMINI_API_KEY not set. Reframing suggestions disabled.");
 if (!DEEPGRAM_API_KEY) console.warn("DEEPGRAM_API_KEY not set. Speech-to-text disabled.");
 
-function App() {
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
+  }
+
+  return user ? children : <Navigate to="/login" />;
+};
+
+function Dashboard() {
   const [inputText, setInputText] = useState('');
   const [detectedCDs, setDetectedCDs] = useState([]);
   const [reframingSuggestion, setReframingSuggestion] = useState('');
@@ -25,6 +39,8 @@ function App() {
   const [loadingReframe, setLoadingReframe] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stopStreamFn, setStopStreamFn] = useState(null);
+
+  const { logout, user } = useAuth();
 
   useEffect(() => {
     const detect = async () => {
@@ -79,9 +95,17 @@ function App() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center">
-        CBT Assistant
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" component="h1">
+            CBT Assistant
+        </Typography>
+        <Box>
+            <Typography variant="subtitle1" component="span" sx={{ mr: 2 }}>
+                Hello, {user?.username}
+            </Typography>
+            <Button variant="outlined" onClick={logout}>Logout</Button>
+        </Box>
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12}>
@@ -154,6 +178,27 @@ function App() {
         </Grid>
       </Grid>
     </Container>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
