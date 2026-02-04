@@ -6,12 +6,12 @@ const config = require("./config");
 const users = [];
 
 const authController = {
-  signup: (req, res) => {
+  signup: async (req, res) => {
     const user = {
       id: users.length + 1,
       username: req.body.username,
       email: req.body.email,
-      password: bcrypt.hashSync(req.body.password, 8),
+      password: await bcrypt.hash(req.body.password, 8),
       roles: req.body.roles || ['user']
     };
 
