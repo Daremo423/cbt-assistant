@@ -1,2 +1,4 @@
 node_modules
 .jules_api_key
+*.log
+build/
