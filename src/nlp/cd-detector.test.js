@@ -1,83 +1,82 @@
-let detectCDs;
+
+jest.mock('@tensorflow/tfjs', () => ({
+  mean: jest.fn(() => 'mockMeanEmbedding'),
+  mul: jest.fn(() => 'mockMultiplied'),
+  sum: jest.fn(() => ({
+    dataSync: jest.fn(() => [0.9]), // Default
+  })),
+  metrics: {
+    cosineDistance: jest.fn(),
+  },
+}));
 
 jest.mock('@tensorflow-models/universal-sentence-encoder', () => ({
   load: jest.fn(),
 }));
 
-const createMockSqueezedTensor = (similarityValue = 0.9) => ({
-  neg: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  add: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  dataSync: jest.fn(() => [similarityValue]),
-  dispose: jest.fn(),
-});
-
-const mockTensor = {
-  squeeze: jest.fn(() => createMockSqueezedTensor()),
-  dispose: jest.fn(),
-};
-
-jest.mock('@tensorflow/tfjs', () => {
-  const originalTf = jest.requireActual('@tensorflow/tfjs');
-  return {
-    ...originalTf,
-    mean: jest.fn((tensor) => mockTensor), // Always return mockTensor
-    metrics: {
-      ...originalTf.metrics,
-      cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)), // Default high similarity
-    },
-    tensor2d: jest.fn(() => mockTensor),
-    equal: jest.fn(() => ({
-      all: jest.fn(() => ({
-        dataSync: jest.fn(() => [1]),
-      })),
-    })),
-  };
-});
-
 describe('detectCDs', () => {
-  let mockEmbed;
+  let detectCDs;
   let use;
+  let mockModel;
   let tf;
 
   beforeEach(() => {
-    jest.resetModules();
-    ({ detectCDs } = require('./cd-detector'));
+    jest.resetModules(); // Reset cache
+
+    // Re-require modules
     use = require('@tensorflow-models/universal-sentence-encoder');
     tf = require('@tensorflow/tfjs');
+    const cdDetector = require('./cd-detector');
+    detectCDs = cdDetector.detectCDs;
 
-    mockEmbed = jest.fn(() => Promise.resolve(mockTensor));
-    use.load.mockResolvedValue({ embed: mockEmbed });
+    mockModel = {
+      embed: jest.fn().mockResolvedValue({
+        squeeze: jest.fn().mockReturnValue('mockSqueezed'),
+        dispose: jest.fn(),
+      }),
+    };
+    use.load.mockResolvedValue(mockModel);
+
+    // Reset tf.sum mock to default
+    tf.sum.mockImplementation(() => ({
+        dataSync: jest.fn(() => [0.9])
+    }));
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  test('should return an empty array if no cognitive distortions are detected', async () => {
-    // Simulate low similarity for all CDs
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
-    const text = 'This is a neutral sentence.';
-    const result = await detectCDs(text);
-    expect(result).toEqual([]);
-    expect(use.load).toHaveBeenCalledTimes(1);
-    expect(mockEmbed).toHaveBeenCalled();
+  test('should detect distortions when similarity is high', async () => {
+    const result = await detectCDs('I am a failure');
+    expect(result.length).toBeGreaterThan(0);
+    expect(tf.sum).toHaveBeenCalled();
   });
 
-  test('should detect "All-or-Nothing" distortion', async () => {
-    // Mock cosineDistance to return high similarity for the relevant CD type
-    // This requires knowing the order of CD types being checked in detectCDs
-    // For simplicity, we'll make all cosine distances high enough to trigger detection
-    // and then filter based on the expected outcome.
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
-      // In a real scenario, you might inspect vec1/vec2 to determine which CD is being checked
-      // For now, we'll just return a high similarity for all.
-      return createMockSqueezedTensor(0.95);
-    });
+  test('should not detect distortions when similarity is low', async () => {
+    tf.sum.mockImplementation(() => ({
+        dataSync: jest.fn(() => [0.1])
+    }));
 
-    const text = 'I always fail at everything.';
-    const result = await detectCDs(text, 'high');
-    expect(result).toContain('All-or-Nothing');
-    expect(use.load).toHaveBeenCalledTimes(1);
-    expect(mockEmbed).toHaveBeenCalled();
+    const result = await detectCDs('I am happy');
+    expect(result).toEqual([]);
+  });
+
+  test('should obey sensitivity thresholds', async () => {
+    tf.sum.mockImplementation(() => ({
+        dataSync: jest.fn(() => [0.65])
+    }));
+
+    // High sensitivity (threshold 0.6) -> should detect
+    let result = await detectCDs('text', 'high');
+    expect(result.length).toBeGreaterThan(0);
+
+    // Medium sensitivity (threshold 0.7) -> should NOT detect
+    result = await detectCDs('text', 'medium');
+    expect(result).toEqual([]);
+
+    // Low sensitivity (threshold 0.8) -> should NOT detect
+    result = await detectCDs('text', 'low');
+    expect(result).toEqual([]);
   });
 });
