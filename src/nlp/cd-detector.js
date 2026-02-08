@@ -52,11 +52,6 @@ async function generateReferenceEmbeddings() {
   }
 }
 
-// Function to calculate cosine similarity between two tensors
-function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
-}
-
 // sensitivity: 'low', 'medium', 'high'
 async function detectCDs(text, sensitivity = 'medium') {
   if (!model) {
@@ -64,31 +59,53 @@ async function detectCDs(text, sensitivity = 'medium') {
   }
 
   const detectedCDs = [];
-  const textEmbedding = await model.embed([text]);
+  let textEmbedding;
 
-  let threshold;
-  switch (sensitivity) {
-    case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
-      break;
-    case 'medium':
-      threshold = 0.7; // Medium threshold
-      break;
-    case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
-      break;
-    default:
-      threshold = 0.7;
-  }
+  try {
+    textEmbedding = await model.embed([text]);
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
-      detectedCDs.push(cdType);
+    let threshold;
+    switch (sensitivity) {
+      case 'low':
+        threshold = 0.8; // Higher threshold for less sensitive detection (obvious only)
+        break;
+      case 'medium':
+        threshold = 0.7; // Medium threshold
+        break;
+      case 'high':
+        threshold = 0.6; // Lower threshold for more sensitive detection (subtle included)
+        break;
+      default:
+        threshold = 0.7;
+    }
+
+    const promises = Object.keys(cdReferenceEmbeddings).map(async (cdType) => {
+      const scoreTensor = tf.tidy(() => {
+        const vec1 = textEmbedding.squeeze();
+        const vec2 = cdReferenceEmbeddings[cdType];
+        return tf.sum(tf.mul(vec1, vec2));
+      });
+
+      const data = await scoreTensor.data();
+      scoreTensor.dispose();
+
+      return { cdType, score: data[0] };
+    });
+
+    const results = await Promise.all(promises);
+
+    results.forEach(({ cdType, score }) => {
+      if (score > threshold) {
+        detectedCDs.push(cdType);
+      }
+    });
+
+  } finally {
+    if (textEmbedding) {
+      textEmbedding.dispose();
     }
   }
 
-  textEmbedding.dispose();
   return detectedCDs;
 }
 
