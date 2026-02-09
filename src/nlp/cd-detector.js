@@ -47,14 +47,15 @@ async function generateReferenceEmbeddings() {
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+
+    // Average across the examples, keeping the resulting tensor
+    const averagedEmbedding = tf.tidy(() => {
+        return tf.mean(embeddings, 0);
+    });
+
+    embeddings.dispose(); // Dispose the batch embeddings tensor
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
   }
-}
-
-// Function to calculate cosine similarity between two tensors
-function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -67,28 +68,52 @@ async function detectCDs(text, sensitivity = 'medium') {
   const textEmbedding = await model.embed([text]);
 
   let threshold;
+  // Inverted logic:
+  // 'low' sensitivity (catch only obvious) -> higher threshold
+  // 'high' sensitivity (catch subtle) -> lower threshold
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8;
       break;
     case 'medium':
-      threshold = 0.7; // Medium threshold
+      threshold = 0.7;
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6;
       break;
     default:
       threshold = 0.7;
   }
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
-      detectedCDs.push(cdType);
-    }
+  try {
+    const cdTypes = Object.keys(cdReferenceEmbeddings);
+
+    const similarityPromises = cdTypes.map(async (cdType) => {
+        // Manual dot product calculation wrapped in tf.tidy
+        const scoreTensor = tf.tidy(() => {
+            const vec1 = textEmbedding.squeeze();
+            const vec2 = cdReferenceEmbeddings[cdType];
+            return tf.sum(tf.mul(vec1, vec2));
+        });
+
+        const data = await scoreTensor.data();
+        scoreTensor.dispose();
+
+        return { cdType, score: data[0] };
+    });
+
+    const results = await Promise.all(similarityPromises);
+
+    results.forEach(({ cdType, score }) => {
+        if (score > threshold) {
+            detectedCDs.push(cdType);
+        }
+    });
+
+  } finally {
+    textEmbedding.dispose();
   }
 
-  textEmbedding.dispose();
   return detectedCDs;
 }
 
