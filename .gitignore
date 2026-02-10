@@ -1,7 +1,2 @@
 node_modules
 .jules_api_key
-.env
-build/
-*.log
-verification/
-__pycache__/
