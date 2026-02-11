@@ -1,0 +1,19 @@
+
+> cbt-assistant@1.2.0 start
+> react-scripts start
+
+(node:4706) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:4706) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Failed to compile.
+
+Attempted import error: 'metrics'.'cosineDistance' is not exported from '@tensorflow/tfjs' (imported as 'tf').
+ERROR in ./src/nlp/cd-detector.js 35:9-34
+export 'metrics'.'cosineDistance' (imported as 'tf') was not found in '@tensorflow/tfjs' (possible exports: MAPE, MSE, binaryAccuracy, binaryCrossentropy, categoricalAccuracy, categoricalCrossentropy, cosineProximity, mape, meanAbsoluteError, meanAbsolutePercentageError, meanSquaredError, mse, precision, r2Score, recall, sparseCategoricalAccuracy)
+
+webpack compiled with 1 error
+Compiling...
+Compiled successfully!
+webpack compiled successfully
