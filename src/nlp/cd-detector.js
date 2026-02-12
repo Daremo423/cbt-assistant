@@ -1,4 +1,3 @@
-// src/nlp/cd-detector.js
 import * as tf from '@tensorflow/tfjs';
 import * as use from '@tensorflow-models/universal-sentence-encoder';
 
@@ -44,17 +43,33 @@ async function loadModel() {
 }
 
 async function generateReferenceEmbeddings() {
+  // Clear any existing reference embeddings to prevent memory leaks
+  for (const key in cdReferenceEmbeddings) {
+      if (cdReferenceEmbeddings[key]) {
+          cdReferenceEmbeddings[key].dispose();
+      }
+  }
+  cdReferenceEmbeddings = {};
+
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+    const averagedEmbedding = tf.tidy(() => tf.mean(embeddings, 0)); // Average across the examples
+    embeddings.dispose();
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
   }
 }
 
-// Function to calculate cosine similarity between two tensors
+// Function to calculate cosine similarity between two tensors manually
+// Using tf.tidy() is crucial for memory management, but here we return a tensor
+// so the caller must dispose it.
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.tidy(() => {
+    const dotProduct = tf.sum(tf.mul(vec1, vec2));
+    const mag1 = tf.sqrt(tf.sum(tf.square(vec1)));
+    const mag2 = tf.sqrt(tf.sum(tf.square(vec2)));
+    return dotProduct.div(mag1.mul(mag2));
+  });
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -64,31 +79,44 @@ async function detectCDs(text, sensitivity = 'medium') {
   }
 
   const detectedCDs = [];
+  // Calculate text embedding
   const textEmbedding = await model.embed([text]);
+  const textVector = textEmbedding.squeeze();
+  textEmbedding.dispose(); // Dispose the batch tensor immediately
 
   let threshold;
+  // Inverted logic: Low sensitivity = High threshold (strict matching)
+  // High sensitivity = Low threshold (lenient matching)
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8;
       break;
     case 'medium':
-      threshold = 0.7; // Medium threshold
+      threshold = 0.7;
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6;
       break;
     default:
       threshold = 0.7;
   }
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
-      detectedCDs.push(cdType);
+  try {
+    for (const cdType in cdReferenceEmbeddings) {
+      const refVector = cdReferenceEmbeddings[cdType];
+
+      const similarityTensor = cosineSimilarity(textVector, refVector);
+      const similarityValue = (await similarityTensor.data())[0];
+      similarityTensor.dispose();
+
+      if (similarityValue > threshold) {
+        detectedCDs.push(cdType);
+      }
     }
+  } finally {
+    textVector.dispose();
   }
 
-  textEmbedding.dispose();
   return detectedCDs;
 }
 
