@@ -3,6 +3,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 let model;
+let modelLoadingPromise = null;
 let cdReferenceEmbeddings = {};
 
 const cdExamples = {
@@ -34,13 +35,29 @@ const cdExamples = {
 };
 
 async function loadModel() {
-  if (!model) {
-    console.log("Loading Universal Sentence Encoder model...");
-    model = await use.load();
-    console.log("Model loaded. Generating reference embeddings...");
-    await generateReferenceEmbeddings();
-    console.log("Reference embeddings generated.");
+  if (model) return;
+
+  if (modelLoadingPromise) {
+    await modelLoadingPromise;
+    return;
   }
+
+  modelLoadingPromise = (async () => {
+    try {
+      console.log("Loading Universal Sentence Encoder model...");
+      model = await use.load();
+      console.log("Model loaded. Generating reference embeddings...");
+      await generateReferenceEmbeddings();
+      console.log("Reference embeddings generated.");
+    } catch (error) {
+      console.error("Failed to load model:", error);
+      // Reset promise so retry is possible
+      modelLoadingPromise = null;
+      throw error;
+    }
+  })();
+
+  await modelLoadingPromise;
 }
 
 async function generateReferenceEmbeddings() {
@@ -54,7 +71,11 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.tidy(() => {
+    // tf.metrics.cosineDistance is not reliably available in all tfjs versions/bundles
+    // Implementing manual dot product since vectors are normalized by USE
+    return tf.sum(tf.mul(vec1, vec2));
+  });
 }
 
 // sensitivity: 'low', 'medium', 'high'
