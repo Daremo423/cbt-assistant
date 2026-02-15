@@ -4,33 +4,27 @@ jest.mock('@tensorflow-models/universal-sentence-encoder', () => ({
   load: jest.fn(),
 }));
 
-const createMockSqueezedTensor = (similarityValue = 0.9) => ({
-  neg: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  add: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  dataSync: jest.fn(() => [similarityValue]),
+const createMockTensor = (data = [0.9]) => ({
+  dataSync: jest.fn(() => data),
   dispose: jest.fn(),
+  squeeze: jest.fn(() => createMockTensor(data)),
+  add: jest.fn(() => createMockTensor(data)),
+  div: jest.fn(() => createMockTensor(data)),
+  mul: jest.fn(() => createMockTensor(data)),
+  sum: jest.fn(() => createMockTensor(data)),
 });
 
-const mockTensor = {
-  squeeze: jest.fn(() => createMockSqueezedTensor()),
-  dispose: jest.fn(),
-};
+const mockTensor = createMockTensor();
 
 jest.mock('@tensorflow/tfjs', () => {
   const originalTf = jest.requireActual('@tensorflow/tfjs');
   return {
     ...originalTf,
-    mean: jest.fn((tensor) => mockTensor), // Always return mockTensor
-    metrics: {
-      ...originalTf.metrics,
-      cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)), // Default high similarity
-    },
+    mean: jest.fn(() => mockTensor),
+    sum: jest.fn((t) => t), // Pass through for sum
+    mul: jest.fn(() => mockTensor), // Return mock tensor for mul
+    tidy: jest.fn((fn) => fn()), // Execute callback immediately
     tensor2d: jest.fn(() => mockTensor),
-    equal: jest.fn(() => ({
-      all: jest.fn(() => ({
-        dataSync: jest.fn(() => [1]),
-      })),
-    })),
   };
 });
 
@@ -55,7 +49,10 @@ describe('detectCDs', () => {
 
   test('should return an empty array if no cognitive distortions are detected', async () => {
     // Simulate low similarity for all CDs
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
+    // We mock sum to return a tensor with a low value when called during cosineSimilarity
+    const lowValTensor = createMockTensor([0.1]);
+    tf.sum.mockReturnValue(lowValTensor);
+
     const text = 'This is a neutral sentence.';
     const result = await detectCDs(text);
     expect(result).toEqual([]);
@@ -64,15 +61,9 @@ describe('detectCDs', () => {
   });
 
   test('should detect "All-or-Nothing" distortion', async () => {
-    // Mock cosineDistance to return high similarity for the relevant CD type
-    // This requires knowing the order of CD types being checked in detectCDs
-    // For simplicity, we'll make all cosine distances high enough to trigger detection
-    // and then filter based on the expected outcome.
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
-      // In a real scenario, you might inspect vec1/vec2 to determine which CD is being checked
-      // For now, we'll just return a high similarity for all.
-      return createMockSqueezedTensor(0.95);
-    });
+    // Simulate high similarity
+    const highValTensor = createMockTensor([0.95]);
+    tf.sum.mockReturnValue(highValTensor);
 
     const text = 'I always fail at everything.';
     const result = await detectCDs(text, 'high');
