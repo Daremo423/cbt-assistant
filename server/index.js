@@ -4,8 +4,28 @@ const cors = require("cors");
 const path = require('path'); // Import the path module
 const { authController, verifyToken, isAdmin } = require("./auth");
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+
+// Rate Limiters
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 login/signup requests per windowMs
+  message: "Too many accounts created from this IP, please try again after 15 minutes",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply global rate limiter
+app.use(limiter);
 
 // CORS and Body Parsing
 app.use(cors());
@@ -18,8 +38,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Public Routes
-app.post("/api/auth/signup", authController.signup);
-app.post("/api/auth/signin", authController.signin);
+app.post("/api/auth/signup", authLimiter, authController.signup);
+app.post("/api/auth/signin", authLimiter, authController.signin);
 
 // Protected Routes
 app.get("/api/test/user", [verifyToken], (req, res) => {
