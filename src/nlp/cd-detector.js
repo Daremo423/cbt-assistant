@@ -49,6 +49,7 @@ async function generateReferenceEmbeddings() {
     const embeddings = await model.embed(examples);
     const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
+    embeddings.dispose();
   }
 }
 
@@ -81,12 +82,15 @@ async function detectCDs(text, sensitivity = 'medium') {
       threshold = 0.7;
   }
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
-      detectedCDs.push(cdType);
+  tf.tidy(() => {
+    const inputVec = textEmbedding.squeeze();
+    for (const cdType in cdReferenceEmbeddings) {
+      const similarity = cosineSimilarity(inputVec, cdReferenceEmbeddings[cdType]);
+      if (similarity.dataSync()[0] > threshold) {
+        detectedCDs.push(cdType);
+      }
     }
-  }
+  });
 
   textEmbedding.dispose();
   return detectedCDs;
