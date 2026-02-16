@@ -3,8 +3,29 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
 const { authController, verifyToken, isAdmin } = require("./auth");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+
+// Rate Limiters
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 login/signup requests per windowMs
+  message: "Too many accounts created from this IP, please try again after 15 minutes",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply global rate limiter
+app.use(limiter);
 
 // CORS and Body Parsing
 app.use(cors());
@@ -17,17 +38,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Public Routes
-app.get("/", (req, res) => {
-  // If serving static files from React build, this root route might not be needed or should be handled by the static serving middleware
-  if (process.env.NODE_ENV === 'production') {
-    res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
-  } else {
-    res.json({ message: "Welcome to CBT Assistant API." });
-  }
-});
-
-app.post("/api/auth/signup", authController.signup);
-app.post("/api/auth/signin", authController.signin);
+app.post("/api/auth/signup", authLimiter, authController.signup);
+app.post("/api/auth/signin", authLimiter, authController.signin);
 
 // Protected Routes
 app.get("/api/test/user", [verifyToken], (req, res) => {
@@ -37,6 +49,44 @@ app.get("/api/test/user", [verifyToken], (req, res) => {
 app.get("/api/test/admin", [verifyToken, isAdmin], (req, res) => {
   res.status(200).send("Admin Content.");
 });
+
+// Reframing Endpoint (Protected)
+app.post("/api/reframe", [verifyToken], async (req, res) => {
+  const { distortionType, originalText } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const prompt = `The user expressed: "${originalText}"
+They are exhibiting a "${distortionType}" cognitive distortion.
+Please provide a concise and helpful reframing suggestion for this thought.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    res.json({ suggestion: text.trim() });
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    res.status(500).json({ error: 'Failed to generate reframe' });
+  }
+});
+
+// Serve React App for any other route in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.json({ message: "Welcome to CBT Assistant API." });
+  });
+}
 
 // Set port, listen for requests
 const PORT = process.env.PORT || 8080;
