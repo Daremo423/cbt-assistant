@@ -16,12 +16,13 @@
     "@mui/styled-engine-sc": "^6.0.0-alpha.9",
     "@tensorflow-models/universal-sentence-encoder": "^1.0.0",
     "@tensorflow/tfjs": "^4.0.0",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.1.5",
     "gemini-mcp-tool": "^1.1.4",
     "gemini-zod": "^0.1.2",
     "jsonwebtoken": "^9.0.3",
@@ -59,6 +60,11 @@
   "overrides": {
     "nth-check": "^2.0.1",
     "postcss": "^8.4.31",
-    "webpack-dev-server": "^5.2.0"
+    "@isaacs/brace-expansion": "5.0.1",
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "hono": "4.11.4",
+    "jsonpath": "1.2.1",
+    "react-router": "7.12.0",
+    "tar": "7.5.7"
   }
 }
