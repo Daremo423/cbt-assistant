@@ -3,10 +3,32 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const rateLimit = require("express-rate-limit");
 require('dotenv').config();
 const { authController, verifyToken, isAdmin } = require("./auth");
 
 const app = express();
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to all requests
+app.use(limiter);
+
+// Specific rate limit for auth routes to prevent brute force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // Limit each IP to 20 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api/auth/", authLimiter);
 
 // CORS and Body Parsing
 app.use(cors());

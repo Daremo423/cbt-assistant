@@ -27,7 +27,8 @@ describe('detectCDs', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    detectCDs = require('./cd-detector').detectCDs;
+    const module = require('./cd-detector');
+    detectCDs = module.detectCDs;
     use = require('@tensorflow-models/universal-sentence-encoder');
     tf = require('@tensorflow/tfjs');
 

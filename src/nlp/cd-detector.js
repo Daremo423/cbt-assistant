@@ -99,7 +99,7 @@ async function detectCDs(text, sensitivity = 'medium') {
   return detectedCDs;
 }
 
-export { detectCDs };
+export { detectCDs, loadModel };
 
 // Initial model load
 if (process.env.NODE_ENV !== 'test') {
