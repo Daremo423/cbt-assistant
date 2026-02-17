@@ -30,7 +30,6 @@ const cdExamples = {
     "It's hopeless, nothing will ever get better.",
     "This is the worst thing that could ever happen."
   ],
-  // Add more examples for other cognitive distortion types as needed
 };
 
 async function loadModel() {
@@ -47,14 +46,15 @@ async function generateReferenceEmbeddings() {
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+    const averagedEmbedding = tf.tidy(() => tf.mean(embeddings, 0));
+    embeddings.dispose();
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
   }
 }
 
-// Function to calculate cosine similarity between two tensors
+// Function to calculate cosine similarity between two tensors using manual dot product
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.tidy(() => tf.sum(tf.mul(vec1, vec2)));
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -65,30 +65,37 @@ async function detectCDs(text, sensitivity = 'medium') {
 
   const detectedCDs = [];
   const textEmbedding = await model.embed([text]);
+  const textVector = tf.tidy(() => textEmbedding.squeeze());
+  textEmbedding.dispose();
 
   let threshold;
+  // Inverse relationship: High sensitivity -> Low threshold (detects more)
+  // Low sensitivity -> High threshold (detects less)
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8;
       break;
     case 'medium':
-      threshold = 0.7; // Medium threshold
+      threshold = 0.7;
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6;
       break;
     default:
       threshold = 0.7;
   }
 
   for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
+    const similarity = cosineSimilarity(textVector, cdReferenceEmbeddings[cdType]);
+    const score = (await similarity.data())[0];
+    similarity.dispose();
+
+    if (score > threshold) {
       detectedCDs.push(cdType);
     }
   }
 
-  textEmbedding.dispose();
+  textVector.dispose();
   return detectedCDs;
 }
 
