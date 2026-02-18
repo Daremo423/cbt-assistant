@@ -1,10 +1,7 @@
-require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
-const rateLimit = require('express-rate-limit');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { authController, verifyToken, isAdmin } = require("./auth");
 
 const app = express();
@@ -13,23 +10,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-app.use(limiter);
-
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // Limit each IP to 20 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-app.use("/api/auth", authLimiter);
 
 // Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {
@@ -50,30 +30,6 @@ app.post("/api/auth/signup", authController.signup);
 app.post("/api/auth/signin", authController.signin);
 
 // Protected Routes
-app.post("/api/reframe", [verifyToken], async (req, res) => {
-  const { distortionType, originalText } = req.body;
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ message: "Gemini API Key not configured." });
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-    const prompt = `The user expressed: "${originalText}"
-They are exhibiting a "${distortionType}" cognitive distortion.
-Please provide a concise and helpful reframing suggestion for this thought.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    res.json({ suggestion: text.trim() });
-  } catch (error) {
-    console.error("Error generating reframing suggestion:", error);
-    res.status(500).json({ message: "Error generating suggestion." });
-  }
-});
-
 app.get("/api/test/user", [verifyToken], (req, res) => {
   res.status(200).send("User Content.");
 });

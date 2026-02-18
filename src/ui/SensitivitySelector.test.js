@@ -15,7 +15,7 @@ describe('SensitivitySelector', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('Medium');
 
     // Check if all options are present (by opening the select)
-    await userEvent.click(screen.getByRole('combobox'));
+    fireEvent.mouseDown(screen.getByRole('combobox'));
     const listbox = await screen.findByRole('listbox');
     expect(listbox).toBeInTheDocument();
     expect(within(listbox).getByText('Low')).toBeInTheDocument();
@@ -27,13 +27,8 @@ describe('SensitivitySelector', () => {
     const handleChange = jest.fn();
     render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
 
-    // Material UI Select requires mouseDown to open
-    fireEvent.mouseDown(screen.getByRole('combobox'));
-
-    // Find the option in the portal (document.body) and click it
-    const listbox = await screen.findByRole('listbox');
-    const highOption = within(listbox).getByText('High');
-    fireEvent.click(highOption);
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByText('High'));
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
