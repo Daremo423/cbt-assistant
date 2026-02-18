@@ -27,8 +27,12 @@ describe('SensitivitySelector', () => {
     const handleChange = jest.fn();
     render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
 
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByText('High'));
+    // Material UI Select requires mouseDown to open
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+
+    // Find the option using findByRole('option') which handles the animation/rendering delay
+    const highOption = await screen.findByRole('option', { name: 'High' });
+    fireEvent.click(highOption);
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
