@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { SensitivitySelector } from './SensitivitySelector';
@@ -27,8 +27,13 @@ describe('SensitivitySelector', () => {
     const handleChange = jest.fn();
     render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
 
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByText('High'));
+    // Material UI Select requires mouseDown to open
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+
+    // Find the option in the portal (document.body) and click it
+    const listbox = await screen.findByRole('listbox');
+    const highOption = within(listbox).getByText('High');
+    fireEvent.click(highOption);
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
