@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { authController, verifyToken, isAdmin } = require("./auth");
 
 const app = express();
@@ -30,6 +32,30 @@ app.post("/api/auth/signup", authController.signup);
 app.post("/api/auth/signin", authController.signin);
 
 // Protected Routes
+app.post("/api/reframe", [verifyToken], async (req, res) => {
+  const { distortionType, originalText } = req.body;
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ message: "Gemini API Key not configured." });
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const prompt = `The user expressed: "${originalText}"
+They are exhibiting a "${distortionType}" cognitive distortion.
+Please provide a concise and helpful reframing suggestion for this thought.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    res.json({ suggestion: text.trim() });
+  } catch (error) {
+    console.error("Error generating reframing suggestion:", error);
+    res.status(500).json({ message: "Error generating suggestion." });
+  }
+});
+
 app.get("/api/test/user", [verifyToken], (req, res) => {
   res.status(200).send("User Content.");
 });
