@@ -34,6 +34,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Apply Rate Limiter to all API routes
+app.use("/api", apiLimiter);
+
 // Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'build')));
@@ -62,7 +65,7 @@ app.get("/api/test/admin", [verifyToken, isAdmin], (req, res) => {
 
 // Reframing Endpoint
 // Apply rate limiter here to prevent abuse of the AI API
-app.post("/api/reframe", [verifyToken, apiLimiter], async (req, res) => {
+app.post("/api/reframe", [verifyToken], async (req, res) => {
   if (!genAIModel) {
     return res.status(503).send({ message: "Reframing service unavailable (API Key missing)." });
   }
