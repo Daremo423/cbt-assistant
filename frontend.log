@@ -21,3 +21,32 @@ webpack compiled successfully
 Compiling...
 Compiled successfully!
 webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Failed to compile.
+
+Error: ENOENT: no such file or directory, open '/app/node_modules/axios/index.js'
+LOG from webpack.FileSystemInfo
+<w> Managed item /app/node_modules/react-router-dom isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
+<w> Managed item /app/node_modules/axios isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 9 hidden lines
+
+ERROR in ./node_modules/axios/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/axios/index.js'
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/react-router-dom/dist/index.mjs'
+
+webpack compiled with 2 errors
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully

@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const { authController, verifyToken, isAdmin } = require("./auth");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -18,6 +19,15 @@ if (GEMINI_API_KEY) {
 } else {
   console.warn("GEMINI_API_KEY not found in environment variables. Reframing features will be disabled.");
 }
+
+// Rate Limiter configuration
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `windowMs`
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: { message: "Too many requests from this IP, please try again later." }
+});
 
 // CORS and Body Parsing
 app.use(cors());
@@ -51,7 +61,8 @@ app.get("/api/test/admin", [verifyToken, isAdmin], (req, res) => {
 });
 
 // Reframing Endpoint
-app.post("/api/reframe", [verifyToken], async (req, res) => {
+// Apply rate limiter here to prevent abuse of the AI API
+app.post("/api/reframe", [verifyToken, apiLimiter], async (req, res) => {
   if (!genAIModel) {
     return res.status(503).send({ message: "Reframing service unavailable (API Key missing)." });
   }
