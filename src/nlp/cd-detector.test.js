@@ -16,11 +16,23 @@ const mockTensor = {
   dispose: jest.fn(),
 };
 
+const mockScalar = (val = 0.8) => ({
+    div: jest.fn(() => mockScalar(val)),
+    mul: jest.fn(() => mockScalar(val)),
+    data: jest.fn(() => Promise.resolve([val])),
+    dataSync: jest.fn(() => [val]),
+    dispose: jest.fn(),
+});
+
 jest.mock('@tensorflow/tfjs', () => {
   const originalTf = jest.requireActual('@tensorflow/tfjs');
   return {
     ...originalTf,
     mean: jest.fn((tensor) => mockTensor), // Always return mockTensor
+    mul: jest.fn(() => mockTensor),
+    sum: jest.fn(() => mockScalar(0.8)),
+    norm: jest.fn(() => mockScalar(1.0)),
+    tidy: jest.fn((fn) => fn()),
     metrics: {
       ...originalTf.metrics,
       cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)), // Default high similarity
@@ -55,7 +67,10 @@ describe('detectCDs', () => {
 
   test('should return an empty array if no cognitive distortions are detected', async () => {
     // Simulate low similarity for all CDs
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
+    // tf.sum returns the dot product. We need to mock it to return a value that results in low similarity.
+    // Logic: similarity = dot / (norm1 * norm2). If norms are 1, similarity = dot.
+    tf.sum.mockReturnValue(mockScalar(0.1));
+
     const text = 'This is a neutral sentence.';
     const result = await detectCDs(text);
     expect(result).toEqual([]);
@@ -64,18 +79,11 @@ describe('detectCDs', () => {
   });
 
   test('should detect "All-or-Nothing" distortion', async () => {
-    // Mock cosineDistance to return high similarity for the relevant CD type
-    // This requires knowing the order of CD types being checked in detectCDs
-    // For simplicity, we'll make all cosine distances high enough to trigger detection
-    // and then filter based on the expected outcome.
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
-      // In a real scenario, you might inspect vec1/vec2 to determine which CD is being checked
-      // For now, we'll just return a high similarity for all.
-      return createMockSqueezedTensor(0.95);
-    });
+    // Mock sum to return high similarity
+    tf.sum.mockReturnValue(mockScalar(0.95));
 
     const text = 'I always fail at everything.';
-    const result = await detectCDs(text, 'high');
+    const result = await detectCDs(text, 'low'); // 'low' sensitivity uses 0.8 threshold
     expect(result).toContain('All-or-Nothing');
     expect(use.load).toHaveBeenCalledTimes(1);
     expect(mockEmbed).toHaveBeenCalled();

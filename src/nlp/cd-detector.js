@@ -44,17 +44,22 @@ async function loadModel() {
 }
 
 async function generateReferenceEmbeddings() {
+  // Use tf.tidy to clean up intermediate tensors during embedding generation
+  // But wait, model.embed is async, so we can't use tidy around it easily for the whole process.
+  // We'll manage disposal manually or scope tidy for synchronous parts.
+
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
-    cdReferenceEmbeddings[cdType] = averagedEmbedding;
-  }
-}
 
-// Function to calculate cosine similarity between two tensors
-function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+    // Calculate mean embedding
+    const averagedEmbedding = tf.tidy(() => {
+        return tf.mean(embeddings, 0);
+    });
+
+    cdReferenceEmbeddings[cdType] = averagedEmbedding;
+    embeddings.dispose(); // Dispose the batch embedding
+  }
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -63,38 +68,57 @@ async function detectCDs(text, sensitivity = 'medium') {
     await loadModel();
   }
 
-  const detectedCDs = [];
-  const textEmbedding = await model.embed([text]);
-
   let threshold;
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8; // Higher threshold for less sensitive detection (stricter)
       break;
     case 'medium':
       threshold = 0.7; // Medium threshold
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6; // Lower threshold for more sensitive detection (laxer)
       break;
     default:
       threshold = 0.7;
   }
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
-      detectedCDs.push(cdType);
-    }
-  }
+  const textEmbedding = await model.embed([text]);
 
+  const { scores, types } = tf.tidy(() => {
+    const vec1 = textEmbedding.squeeze();
+    const scores = [];
+    const types = [];
+
+    for (const cdType in cdReferenceEmbeddings) {
+      const vec2 = cdReferenceEmbeddings[cdType];
+
+      // Manual cosine similarity: (A . B) / (||A|| * ||B||)
+      const dotProduct = tf.sum(tf.mul(vec1, vec2));
+      const norm1 = tf.norm(vec1);
+      const norm2 = tf.norm(vec2);
+      const similarity = dotProduct.div(norm1.mul(norm2));
+
+      scores.push(similarity);
+      types.push(cdType);
+    }
+    return { scores, types };
+  });
+
+  const detectedCDs = [];
+  const scoreValues = await Promise.all(scores.map(s => s.data()));
+
+  scoreValues.forEach((val, index) => {
+    if (val[0] > threshold) {
+      detectedCDs.push(types[index]);
+    }
+  });
+
+  // Dispose tensors
   textEmbedding.dispose();
+  scores.forEach(s => s.dispose());
+
   return detectedCDs;
 }
 
-export { detectCDs };
-
-// Initial model load
-if (process.env.NODE_ENV !== 'test') {
-  loadModel();
-}
+export { detectCDs, loadModel };
