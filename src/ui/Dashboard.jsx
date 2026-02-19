@@ -1,0 +1,175 @@
+import React, { useState, useEffect } from 'react';
+import { TranscriptionWindow } from './TranscriptionWindow';
+import { ReframeWindow } from './ReframeWindow';
+import { SensitivitySelector } from './SensitivitySelector';
+import { detectCDs } from '../nlp/cd-detector';
+import { getReframe } from '../nlp/reframe-engine';
+import { startDeepgramStream } from '../audio/deepgram-client';
+import { useAuth } from '../context/AuthContext';
+import { Container, Typography, TextField, Button, Grid, Card, CardContent, CircularProgress, Box, AppBar, Toolbar } from '@mui/material';
+import MicIcon from '@mui/icons-material/Mic';
+import MicOffIcon from '@mui/icons-material/MicOff';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useNavigate } from 'react-router-dom';
+
+// Use REACT_APP_ prefix for client-side environment variables
+const DEEPGRAM_API_KEY = process.env.REACT_APP_DEEPGRAM_API_KEY;
+
+if (!DEEPGRAM_API_KEY) console.warn("REACT_APP_DEEPGRAM_API_KEY not set. Speech-to-text disabled.");
+
+const Dashboard = () => {
+  const [inputText, setInputText] = useState('');
+  const [detectedCDs, setDetectedCDs] = useState([]);
+  const [reframingSuggestion, setReframingSuggestion] = useState('');
+  const [sensitivity, setSensitivity] = useState('medium');
+  const [loadingCDs, setLoadingCDs] = useState(false);
+  const [loadingReframe, setLoadingReframe] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [stopStreamFn, setStopStreamFn] = useState(null);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const detect = async () => {
+      if (inputText.trim() === '') {
+        setDetectedCDs([]);
+        setReframingSuggestion('');
+        return;
+      }
+      setLoadingCDs(true);
+      const cds = await detectCDs(inputText, sensitivity);
+      setDetectedCDs(cds);
+      setLoadingCDs(false);
+    };
+    const handler = setTimeout(() => detect(), 500); // Debounce detection
+    return () => clearTimeout(handler);
+  }, [inputText, sensitivity]);
+
+  useEffect(() => {
+    const reframe = async () => {
+      if (detectedCDs.length > 0) {
+        setLoadingReframe(true);
+        // Call backend for reframe
+        const suggestion = await getReframe(detectedCDs[0], inputText);
+        setReframingSuggestion(suggestion);
+        setLoadingReframe(false);
+      } else {
+        setReframingSuggestion('');
+      }
+    };
+    reframe();
+  }, [detectedCDs, inputText]);
+
+  const handleStartRecording = async () => {
+    if (!DEEPGRAM_API_KEY) {
+      alert("Deepgram API Key is missing. Please set REACT_APP_DEEPGRAM_API_KEY.");
+      return;
+    }
+    const onTranscription = (transcript) => {
+      setInputText(prevText => (prevText.trim() ? prevText + ' ' : '') + transcript);
+    };
+    const stopFn = await startDeepgramStream(DEEPGRAM_API_KEY, onTranscription);
+    setStopStreamFn(() => stopFn);
+    setIsRecording(true);
+  };
+
+  const handleStopRecording = () => {
+    if (stopStreamFn) stopStreamFn();
+    setIsRecording(false);
+    setStopStreamFn(null);
+  };
+
+  const handleLogout = () => {
+      logout();
+      navigate('/login');
+  };
+
+  const highlightWords = inputText.split(' ').map(() => detectedCDs.length > 0);
+
+  return (
+    <>
+    <AppBar position="static">
+        <Toolbar>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                CBT Assistant {user?.username ? `- Welcome, ${user.username}` : ''}
+            </Typography>
+            <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>Logout</Button>
+        </Toolbar>
+    </AppBar>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Your Thoughts</Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="I always mess things up. I should have done better."
+                disabled={isRecording}
+                variant="outlined"
+                sx={{ mt: 2 }}
+              />
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+                <Button
+                  variant="contained"
+                  onClick={!isRecording ? handleStartRecording : handleStopRecording}
+                  disabled={!DEEPGRAM_API_KEY}
+                  startIcon={isRecording ? <MicOffIcon /> : <MicIcon />}
+                >
+                  {isRecording ? 'Stop Recording' : 'Start Recording'}
+                </Button>
+                {isRecording && <CircularProgress size={24} sx={{ ml: 2 }} />}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Transcription & Analysis</Typography>
+              {loadingCDs ? <CircularProgress /> : <TranscriptionWindow transcript={inputText} highlights={highlightWords} />}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+            <Card>
+                <CardContent>
+                    <Typography variant="h6">Detected Distortions</Typography>
+                    {loadingCDs ? <CircularProgress /> : (
+                        detectedCDs.length > 0 ? (
+                            <ul>{detectedCDs.map((cd, i) => <li key={i}>{cd}</li>)}</ul>
+                        ) : <p>None detected.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+            <Card>
+                <CardContent>
+                    <SensitivitySelector currentSensitivity={sensitivity} onSensitivityChange={setSensitivity} />
+                </CardContent>
+            </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Reframing Suggestion</Typography>
+              {loadingReframe ? <CircularProgress /> : <ReframeWindow suggestion={reframingSuggestion} />}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
+    </>
+  );
+};
+
+export default Dashboard;
