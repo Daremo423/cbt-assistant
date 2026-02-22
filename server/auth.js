@@ -6,12 +6,12 @@ const config = require("./config");
 const users = [];
 
 const authController = {
-  signup: (req, res) => {
+  signup: async (req, res) => {
     const user = {
       id: users.length + 1,
       username: req.body.username,
       email: req.body.email,
-      password: bcrypt.hashSync(req.body.password, 8),
+      password: await bcrypt.hash(req.body.password, 8),
       roles: req.body.roles || ['user']
     };
 
@@ -24,14 +24,14 @@ const authController = {
     res.send({ message: "User registered successfully!" });
   },
 
-  signin: (req, res) => {
+  signin: async (req, res) => {
     const user = users.find(u => u.username === req.body.username);
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
 
-    const passwordIsValid = bcrypt.compareSync(
+    const passwordIsValid = await bcrypt.compare(
       req.body.password,
       user.password
     );
