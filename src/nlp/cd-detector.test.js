@@ -5,16 +5,16 @@ describe('detectCDs', () => {
   let tf;
   let detectCDs;
 
-  const createMockSqueezedTensor = (similarityValue = 0.9) => ({
-    neg: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-    add: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-    dataSync: jest.fn(() => [similarityValue]),
-    data: jest.fn(() => Promise.resolve([similarityValue])),
+  const createMockSqueezedTensor = (val) => ({
+    neg: jest.fn(() => createMockSqueezedTensor(-val)),
+    add: jest.fn((n) => createMockSqueezedTensor(val + n)),
+    dataSync: jest.fn(() => [val]),
+    data: jest.fn(() => Promise.resolve([val])),
     dispose: jest.fn(),
   });
 
   const mockTensor = {
-    squeeze: () => createMockSqueezedTensor(),
+    squeeze: () => createMockSqueezedTensor(0), // Default value doesn't matter much as we mock cosineDistance result
     dispose: jest.fn(),
   };
 
@@ -30,9 +30,9 @@ describe('detectCDs', () => {
       return {
         ...originalTf,
         mean: jest.fn((tensor) => mockTensor),
-        metrics: {
-          ...originalTf.metrics,
-          cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)),
+        losses: {
+          ...originalTf.losses,
+          cosineDistance: jest.fn((vec1, vec2, axis) => createMockSqueezedTensor(0.1)), // Default
         },
         tensor2d: jest.fn(() => mockTensor),
         equal: jest.fn(() => ({
@@ -56,7 +56,8 @@ describe('detectCDs', () => {
   });
 
   test('should return an empty array if no cognitive distortions are detected', async () => {
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
+    // If distance is 0.9, similarity is 1 - 0.9 = 0.1
+    tf.losses.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.9));
     const text = 'This is a neutral sentence.';
     const result = await detectCDs(text);
     expect(result).toEqual([]);
@@ -65,8 +66,9 @@ describe('detectCDs', () => {
   });
 
   test('should detect "All-or-Nothing" distortion', async () => {
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
-      return createMockSqueezedTensor(0.95);
+    // If distance is 0.05, similarity is 1 - 0.05 = 0.95
+    tf.losses.cosineDistance.mockImplementation((vec1, vec2, axis) => {
+      return createMockSqueezedTensor(0.05);
     });
 
     const text = 'I always fail at everything.';

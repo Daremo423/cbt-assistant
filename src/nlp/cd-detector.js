@@ -63,7 +63,13 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  // cosineDistance returns 1 - cosine_similarity
+  // We want similarity, so we compute (1 - distance) which is (1 - (1 - sim)) = sim
+  // But wait, the original logic was .neg().add(1) which implies input was distance?
+  // Original logic: input.neg().add(1) = -input + 1 = 1 - input.
+  // If input is distance (1-sim), then 1 - (1-sim) = sim.
+  // So yes, tf.losses.cosineDistance returns distance, so we just negate and add 1.
+  return tf.losses.cosineDistance(vec1, vec2, 0).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
