@@ -38,6 +38,13 @@ app.get("/api/test/admin", [verifyToken, isAdmin], (req, res) => {
   res.status(200).send("Admin Content.");
 });
 
+// Wildcard route for client-side routing
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
+  });
+}
+
 // Set port, listen for requests
 const PORT = process.env.PORT || 8080;
 if (process.env.NODE_ENV !== 'test') {
