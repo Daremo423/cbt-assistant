@@ -9,18 +9,19 @@ const apiClient = axios.create({
   },
 });
 
-// Add an interceptor to include JWT token if available
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['x-access-token'] = token;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Optional: Add an interceptor to include JWT token if available
+// For now, it's not implemented as token management will be in AuthContext
+// apiClient.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token'); // Or get from context
+//     if (token) {
+//       config.headers['x-access-token'] = token;
+//     }
+//     return config;
+//   },
+//   (error) => {
+//     return Promise.reject(error);
+//   }
+// );
 
 export default apiClient;

@@ -2,19 +2,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
-const rateLimit = require('express-rate-limit');
 const { authController, verifyToken, isAdmin } = require("./auth");
 
 const app = express();
-
-// Rate Limiter
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-
-// Apply rate limiter to all requests
-app.use(limiter);
 
 // CORS and Body Parsing
 app.use(cors());
@@ -47,13 +37,6 @@ app.get("/api/test/user", [verifyToken], (req, res) => {
 app.get("/api/test/admin", [verifyToken, isAdmin], (req, res) => {
   res.status(200).send("Admin Content.");
 });
-
-// Wildcard route for client-side routing
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
-  });
-}
 
 // Set port, listen for requests
 const PORT = process.env.PORT || 8080;

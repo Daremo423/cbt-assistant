@@ -47,23 +47,14 @@ async function generateReferenceEmbeddings() {
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    // We want to keep the averaged embedding, so we don't dispose it.
-    // But we must dispose the batch embeddings tensor.
-    const averagedEmbedding = tf.tidy(() => {
-        return tf.mean(embeddings, 0);
-    });
+    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
-    embeddings.dispose();
   }
 }
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  // We use tf.tidy inside the loop in detectCDs, or let the caller handle disposal.
-  // Here we just return the tensor ops.
-  // tf.metrics.cosineProximity returns the negative cosine similarity.
-  // So we negate it to get the positive cosine similarity (1 for identical vectors).
-  return tf.metrics.cosineProximity(vec1, vec2).neg();
+  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -91,12 +82,8 @@ async function detectCDs(text, sensitivity = 'medium') {
   }
 
   for (const cdType in cdReferenceEmbeddings) {
-    const isMatch = tf.tidy(() => {
-        const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-        return similarity.dataSync()[0] > threshold;
-    });
-
-    if (isMatch) {
+    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
+    if (similarity.dataSync()[0] > threshold) {
       detectedCDs.push(cdType);
     }
   }
