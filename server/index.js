@@ -2,9 +2,19 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
+const rateLimit = require('express-rate-limit');
 const { authController, verifyToken, isAdmin } = require("./auth");
 
 const app = express();
+
+// Rate Limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
+// Apply rate limiter to all requests
+app.use(limiter);
 
 // CORS and Body Parsing
 app.use(cors());
