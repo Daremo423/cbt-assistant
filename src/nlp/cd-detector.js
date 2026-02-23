@@ -54,7 +54,9 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  // tf.metrics.cosineProximity returns the negative cosine similarity.
+  // So we negate it to get the positive cosine similarity (1 for identical vectors).
+  return tf.metrics.cosineProximity(vec1, vec2).neg();
 }
 
 // sensitivity: 'low', 'medium', 'high'
