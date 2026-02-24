@@ -74,7 +74,7 @@ function App() {
     setIsRecording(false);
     setStopStreamFn(null);
   };
-  
+
   const highlightWords = inputText.split(' ').map(() => detectedCDs.length > 0);
 
   return (
@@ -122,7 +122,7 @@ function App() {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
             <Card>
                 <CardContent>
