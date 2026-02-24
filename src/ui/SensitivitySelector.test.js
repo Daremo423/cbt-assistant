@@ -1,12 +1,29 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { SensitivitySelector } from './SensitivitySelector';
 
+// Mock console.error to fail tests on warnings
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args) => {
+    if (/Warning.*not wrapped in act/.test(args[0])) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+
 describe('SensitivitySelector', () => {
   test('renders with initial value and options', async () => {
-    render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={() => {}} />);
+    await act(async () => {
+        render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={() => {}} />);
+    });
 
     // Check if the label is rendered
     expect(screen.getByLabelText('Sensitivity')).toBeInTheDocument();
@@ -15,7 +32,10 @@ describe('SensitivitySelector', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('Medium');
 
     // Check if all options are present (by opening the select)
-    await userEvent.click(screen.getByRole('combobox'));
+    await act(async () => {
+        await userEvent.click(screen.getByRole('combobox'));
+    });
+
     const listbox = await screen.findByRole('listbox');
     expect(listbox).toBeInTheDocument();
     expect(within(listbox).getByText('Low')).toBeInTheDocument();
@@ -25,10 +45,17 @@ describe('SensitivitySelector', () => {
 
   test('calls onSensitivityChange with the new value when changed', async () => {
     const handleChange = jest.fn();
-    render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
+    await act(async () => {
+        render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
+    });
 
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByText('High'));
+    await act(async () => {
+        await userEvent.click(screen.getByRole('combobox'));
+    });
+
+    await act(async () => {
+        await userEvent.click(screen.getByText('High'));
+    });
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Container, TextField, Button, Typography, Box, Alert, Paper, Grid } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Alert, Paper } from '@mui/material';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -89,5 +89,8 @@ const Login = () => {
     </Container>
   );
 };
+
+// Import Grid explicitly as it was missed in the destructuring above
+import { Grid } from '@mui/material';
 
 export default Login;

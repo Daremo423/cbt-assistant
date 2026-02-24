@@ -2,11 +2,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Access your API key as an environment variable (preferable for security).
-// Make sure to set REACT_APP_GEMINI_API_KEY in your environment variables.
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
+// Make sure to set GEMINI_API_KEY in your environment variables.
+const API_KEY = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
-  console.error("REACT_APP_GEMINI_API_KEY environment variable not set. Reframing suggestions will not be generated.");
+  console.error("GEMINI_API_KEY environment variable not set. Reframing suggestions will not be generated.");
 }
 
 const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;

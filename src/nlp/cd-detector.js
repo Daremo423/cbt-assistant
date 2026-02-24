@@ -3,7 +3,6 @@ import * as tf from '@tensorflow/tfjs';
 import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 let model;
-let modelLoadingPromise = null;
 let cdReferenceEmbeddings = {};
 
 const cdExamples = {
@@ -35,26 +34,13 @@ const cdExamples = {
 };
 
 async function loadModel() {
-  if (model) return;
-
-  if (!modelLoadingPromise) {
+  if (!model) {
     console.log("Loading Universal Sentence Encoder model...");
-    modelLoadingPromise = (async () => {
-      try {
-        const loadedModel = await use.load();
-        model = loadedModel;
-        console.log("Model loaded. Generating reference embeddings...");
-        await generateReferenceEmbeddings();
-        console.log("Reference embeddings generated.");
-      } catch (error) {
-        console.error("Error loading model:", error);
-        modelLoadingPromise = null; // Reset promise on failure
-        throw error;
-      }
-    })();
+    model = await use.load();
+    console.log("Model loaded. Generating reference embeddings...");
+    await generateReferenceEmbeddings();
+    console.log("Reference embeddings generated.");
   }
-
-  await modelLoadingPromise;
 }
 
 async function generateReferenceEmbeddings() {
@@ -64,6 +50,11 @@ async function generateReferenceEmbeddings() {
     const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
   }
+}
+
+// Function to calculate cosine similarity between two tensors
+function cosineSimilarity(vec1, vec2) {
+  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -91,9 +82,7 @@ async function detectCDs(text, sensitivity = 'medium') {
   }
 
   for (const cdType in cdReferenceEmbeddings) {
-    // cosineProximity returns negative cosine similarity (Keras convention)
-    // So we negate it to get cosine similarity.
-    const similarity = tf.metrics.cosineProximity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]).neg();
+    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
     if (similarity.dataSync()[0] > threshold) {
       detectedCDs.push(cdType);
     }
