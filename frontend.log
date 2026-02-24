@@ -25,3 +25,272 @@ webpack compiled with 1 error
 Compiling...
 Compiled successfully!
 webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Failed to compile.
+
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-converter/dist/index.js'
+LOG from webpack.FileSystemInfo
+<w> Managed item /app/node_modules/@tensorflow/tfjs-core isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
+<w> Managed item /app/node_modules/@tensorflow/tfjs-converter isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 9 hidden lines
+
+ERROR in ./node_modules/@tensorflow/tfjs-converter/dist/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-converter/dist/index.js'
+
+ERROR in ./node_modules/@tensorflow/tfjs-core/dist/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-core/dist/index.js'
+
+webpack compiled with 2 errors
+Compiling...
+Failed to compile.
+
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-converter/dist/index.js'
+ERROR in ./node_modules/@tensorflow/tfjs-converter/dist/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-converter/dist/index.js'
+
+ERROR in ./node_modules/@tensorflow/tfjs-core/dist/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-core/dist/index.js'
+
+webpack compiled with 2 errors
+Failed to compile.
+
+Attempted import error: 'BrowserRouter' is not exported from 'react-router-dom' (imported as 'Router').
+LOG from webpack.FileSystemInfo
+<w> Managed item /app/node_modules/react-router isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 8 hidden lines
+
+ERROR in ./src/ui/App.jsx 14:35-41
+export 'BrowserRouter' (imported as 'Router') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/App.jsx 15:37-43
+export 'Routes' (imported as 'Routes') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/App.jsx 16:40-45
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/App.jsx 27:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/App.jsx 38:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/App.jsx 44:41-46
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/Login.jsx 17:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/Login.jsx 128:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/Login.jsx 174:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 36:32-40
+export 'Navigate' (imported as 'Navigate') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 45:30-36
+export 'Outlet' (imported as 'Outlet') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/Signup.jsx 20:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/Signup.jsx 164:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./src/ui/Signup.jsx 208:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (possible exports: HydratedRouter, RouterProvider)
+
+ERROR in ./node_modules/@tensorflow/tfjs-converter/dist/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-converter/dist/index.js'
+
+ERROR in ./node_modules/@tensorflow/tfjs-core/dist/index.js
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/@tensorflow/tfjs-core/dist/index.js'
+
+ERROR in ./node_modules/react-router/dist/development/dom-export.mjs
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/react-router/dist/development/dom-export.mjs'
+
+ERROR in ./node_modules/react-router/dist/development/index.mjs
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/app/node_modules/react-router/dist/development/index.mjs'
+
+webpack compiled with 18 errors
+Compiling...
+Failed to compile.
+
+Attempted import error: 'BrowserRouter' is not exported from 'react-router-dom' (imported as 'Router').
+LOG from webpack.FileSystemInfo
+<w> Managed item /app/node_modules/react-router isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 16 hidden lines
+
+ERROR in ./src/ui/App.jsx 14:35-41
+export 'BrowserRouter' (imported as 'Router') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 15:37-43
+export 'Routes' (imported as 'Routes') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 16:40-45
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 27:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 38:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 44:41-46
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 17:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 128:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 174:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 36:32-40
+export 'Navigate' (imported as 'Navigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 45:30-36
+export 'Outlet' (imported as 'Outlet') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 20:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 164:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 208:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs 13:0-66
+Module not found: Error: Can't resolve 'react-router/dom' in '/app/node_modules/react-router-dom/dist'
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs 14:0-29
+Module not found: Error: Can't resolve 'react-router' in '/app/node_modules/react-router-dom/dist'
+
+webpack compiled with 16 errors
+Compiling...
+Failed to compile.
+
+Attempted import error: 'BrowserRouter' is not exported from 'react-router-dom' (imported as 'Router').
+LOG from webpack.FileSystemInfo
+<w> Managed item /app/node_modules/react-router isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 16 hidden lines
+
+ERROR in ./src/ui/App.jsx 14:35-41
+export 'BrowserRouter' (imported as 'Router') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 15:37-43
+export 'Routes' (imported as 'Routes') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 16:40-45
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 27:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 38:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 44:41-46
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 17:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 128:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 174:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 36:32-40
+export 'Navigate' (imported as 'Navigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 45:30-36
+export 'Outlet' (imported as 'Outlet') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 20:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 164:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 208:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs 13:0-66
+Module not found: Error: Can't resolve 'react-router/dom' in '/app/node_modules/react-router-dom/dist'
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs 14:0-29
+Module not found: Error: Can't resolve 'react-router' in '/app/node_modules/react-router-dom/dist'
+
+webpack compiled with 16 errors
+Compiling...
+Failed to compile.
+
+Attempted import error: 'BrowserRouter' is not exported from 'react-router-dom' (imported as 'Router').
+ERROR in ./src/ui/App.jsx 14:35-41
+export 'BrowserRouter' (imported as 'Router') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 15:37-43
+export 'Routes' (imported as 'Routes') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 16:40-45
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 27:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 38:39-44
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/App.jsx 44:41-46
+export 'Route' (imported as 'Route') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 18:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 129:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Login.jsx 173:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 36:32-40
+export 'Navigate' (imported as 'Navigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/ProtectedRoute.jsx 45:30-36
+export 'Outlet' (imported as 'Outlet') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 20:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 164:45-49
+export 'Link' (imported as 'Link') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./src/ui/Signup.jsx 208:19-30
+export 'useNavigate' (imported as 'useNavigate') was not found in 'react-router-dom' (module has no exports)
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs 13:0-66
+Module not found: Error: Can't resolve 'react-router/dom' in '/app/node_modules/react-router-dom/dist'
+
+ERROR in ./node_modules/react-router-dom/dist/index.mjs 14:0-29
+Module not found: Error: Can't resolve 'react-router' in '/app/node_modules/react-router-dom/dist'
+
+webpack compiled with 16 errors
