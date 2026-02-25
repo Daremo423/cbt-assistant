@@ -1,2 +1,7 @@
 node_modules
 .jules_api_key
+build/
+.env
+*.log
+coverage/
+verification/

@@ -30,7 +30,6 @@ const cdExamples = {
     "It's hopeless, nothing will ever get better.",
     "This is the worst thing that could ever happen."
   ],
-  // Add more examples for other cognitive distortion types as needed
 };
 
 async function loadModel() {
@@ -47,14 +46,11 @@ async function generateReferenceEmbeddings() {
   for (const cdType in cdExamples) {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+    // Use tf.tidy for operations, keep the result
+    const averagedEmbedding = tf.tidy(() => tf.mean(embeddings, 0));
+    embeddings.dispose();
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
   }
-}
-
-// Function to calculate cosine similarity between two tensors
-function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -69,21 +65,35 @@ async function detectCDs(text, sensitivity = 'medium') {
   let threshold;
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8; // Higher threshold -> Fewer detections
       break;
     case 'medium':
-      threshold = 0.7; // Medium threshold
+      threshold = 0.7;
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6; // Lower threshold -> More detections
       break;
     default:
       threshold = 0.7;
   }
 
-  for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
+  // Use tf.tidy to clean up intermediate tensors
+  const similarities = tf.tidy(() => {
+    const results = {};
+    const textVec = textEmbedding.reshape([1, -1]); // Ensure 2D
+
+    for (const cdType in cdReferenceEmbeddings) {
+      const refVec = cdReferenceEmbeddings[cdType].reshape([1, -1]);
+      // Compute cosine similarity: 1 - cosineDistance
+      // Using tf.losses.cosineDistance as in previous implementation logic
+      const similarity = tf.losses.cosineDistance(textVec, refVec, 0).neg().add(1);
+      results[cdType] = similarity.dataSync()[0];
+    }
+    return results;
+  });
+
+  for (const cdType in similarities) {
+    if (similarities[cdType] > threshold) {
       detectedCDs.push(cdType);
     }
   }
@@ -92,9 +102,4 @@ async function detectCDs(text, sensitivity = 'medium') {
   return detectedCDs;
 }
 
-export { detectCDs };
-
-// Initial model load
-if (process.env.NODE_ENV !== 'test') {
-  loadModel();
-}
+export { detectCDs, loadModel };
