@@ -85,8 +85,8 @@ async function detectCDs(text, sensitivity = 'medium') {
     for (const cdType in cdReferenceEmbeddings) {
       const refVec = cdReferenceEmbeddings[cdType].reshape([1, -1]);
       // Compute cosine similarity: 1 - cosineDistance
-      // Using tf.losses.cosineDistance as in previous implementation logic
-      const similarity = tf.losses.cosineDistance(textVec, refVec, 0).neg().add(1);
+      // Use axis=-1 to compute across the embedding dimension (512)
+      const similarity = tf.losses.cosineDistance(textVec, refVec, -1).neg().add(1);
       results[cdType] = similarity.dataSync()[0];
     }
     return results;
