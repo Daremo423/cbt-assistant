@@ -2,9 +2,19 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
+const rateLimit = require("express-rate-limit");
 const { authController, verifyToken, isAdmin } = require("./auth");
+const { getReframeSuggestion } = require("./reframe");
 
 const app = express();
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+});
+
+// Apply rate limiting to all requests
+app.use(limiter);
 
 // CORS and Body Parsing
 app.use(cors());
@@ -36,6 +46,19 @@ app.get("/api/test/user", [verifyToken], (req, res) => {
 
 app.get("/api/test/admin", [verifyToken, isAdmin], (req, res) => {
   res.status(200).send("Admin Content.");
+});
+
+app.post("/api/reframe", [verifyToken], async (req, res) => {
+  const { distortion, text } = req.body;
+  if (!distortion || !text) {
+    return res.status(400).send({ message: "Distortion and text are required." });
+  }
+  try {
+    const suggestion = await getReframeSuggestion(distortion, text);
+    res.json({ suggestion });
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
 });
 
 // Set port, listen for requests
