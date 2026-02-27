@@ -64,11 +64,5 @@
     "nth-check": "^2.0.1",
     "postcss": "^8.4.31",
     "webpack-dev-server": "^5.2.0"
-  },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "transformIgnorePatterns": [
-      "node_modules/(?!@tensorflow|@tensorflow-models)/"
-    ]
   }
 }

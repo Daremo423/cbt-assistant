@@ -54,14 +54,7 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  // Use tf.losses.cosineDistance instead of tf.metrics.cosineDistance
-  // cosineDistance returns 1 - cos(theta), so neg().add(1) converts it to cos(theta) (similarity)
-  // Ensure axis is correctly handled if inputs are 1D or batched.
-  // Universal Sentence Encoder returns 2D tensors [batch, 512].
-  // Squeezing makes them 1D [512].
-  // tf.losses.cosineDistance expects tensors of same shape.
-  // Axis -1 is standard for last dimension.
-  return tf.losses.cosineDistance(vec1, vec2, -1).neg().add(1);
+  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -90,18 +83,9 @@ async function detectCDs(text, sensitivity = 'medium') {
 
   for (const cdType in cdReferenceEmbeddings) {
     const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-
-    // Memory management: we need to get the data out.
-    // .dataSync() is blocking, but okay for small single value.
-    // For larger scale, await .data() is better.
-    const simValue = (await similarity.data())[0];
-
-    if (simValue > threshold) {
+    if (similarity.dataSync()[0] > threshold) {
       detectedCDs.push(cdType);
     }
-
-    // Dispose intermediate tensors created inside the loop if any (here similarity is one)
-    similarity.dispose();
   }
 
   textEmbedding.dispose();
