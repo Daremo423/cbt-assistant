@@ -4,6 +4,7 @@ import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 let model;
 let cdReferenceEmbeddings = {};
+let modelLoadingPromise = null;
 
 const cdExamples = {
   'All-or-Nothing': [
@@ -34,12 +35,19 @@ const cdExamples = {
 };
 
 async function loadModel() {
+  if (modelLoadingPromise) {
+    return modelLoadingPromise;
+  }
+
   if (!model) {
-    console.log("Loading Universal Sentence Encoder model...");
-    model = await use.load();
-    console.log("Model loaded. Generating reference embeddings...");
-    await generateReferenceEmbeddings();
-    console.log("Reference embeddings generated.");
+    modelLoadingPromise = (async () => {
+      console.log("Loading Universal Sentence Encoder model...");
+      model = await use.load();
+      console.log("Model loaded. Generating reference embeddings...");
+      await generateReferenceEmbeddings();
+      console.log("Reference embeddings generated.");
+    })();
+    await modelLoadingPromise;
   }
 }
 
@@ -54,7 +62,7 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.tidy(() => tf.losses.cosineDistance(vec1, vec2, -1).neg().add(1));
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -81,20 +89,20 @@ async function detectCDs(text, sensitivity = 'medium') {
       threshold = 0.7;
   }
 
+  const squeezedTextEmbedding = textEmbedding.squeeze();
+
   for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
+    const similarity = cosineSimilarity(squeezedTextEmbedding, cdReferenceEmbeddings[cdType]);
+    const simValue = await similarity.data();
+    if (simValue[0] > threshold) {
       detectedCDs.push(cdType);
     }
+    similarity.dispose();
   }
 
+  squeezedTextEmbedding.dispose();
   textEmbedding.dispose();
   return detectedCDs;
 }
 
-export { detectCDs };
-
-// Initial model load
-if (process.env.NODE_ENV !== 'test') {
-  loadModel();
-}
+export { detectCDs, loadModel };
