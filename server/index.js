@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require('path'); // Import the path module
 const { authController, verifyToken, isAdmin } = require("./auth");
+const { getReframe } = require("./reframe");
 
 const app = express();
 
@@ -28,6 +29,8 @@ app.get("/", (req, res) => {
 
 app.post("/api/auth/signup", authController.signup);
 app.post("/api/auth/signin", authController.signin);
+
+app.post("/api/reframe", getReframe);
 
 // Protected Routes
 app.get("/api/test/user", [verifyToken], (req, res) => {
