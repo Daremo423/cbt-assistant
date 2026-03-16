@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TranscriptionWindow } from './TranscriptionWindow';
 import { ReframeWindow } from './ReframeWindow';
 import { SensitivitySelector } from './SensitivitySelector';
@@ -75,7 +75,9 @@ function App() {
     setStopStreamFn(null);
   };
   
-  const highlightWords = inputText.split(' ').map(() => detectedCDs.length > 0);
+  const highlightWords = useMemo(() => {
+    return inputText.split(' ').map(() => detectedCDs.length > 0);
+  }, [inputText, detectedCDs]);
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>

@@ -4,6 +4,7 @@ import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 let model;
 let cdReferenceEmbeddings = {};
+let modelLoadingPromise;
 
 const cdExamples = {
   'All-or-Nothing': [
@@ -34,13 +35,16 @@ const cdExamples = {
 };
 
 async function loadModel() {
-  if (!model) {
-    console.log("Loading Universal Sentence Encoder model...");
-    model = await use.load();
-    console.log("Model loaded. Generating reference embeddings...");
-    await generateReferenceEmbeddings();
-    console.log("Reference embeddings generated.");
+  if (!modelLoadingPromise) {
+    modelLoadingPromise = (async () => {
+      console.log("Loading Universal Sentence Encoder model...");
+      model = await use.load();
+      console.log("Model loaded. Generating reference embeddings...");
+      await generateReferenceEmbeddings();
+      console.log("Reference embeddings generated.");
+    })();
   }
+  return modelLoadingPromise;
 }
 
 async function generateReferenceEmbeddings() {
@@ -54,7 +58,7 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.losses.cosineDistance(vec1, vec2, -1).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -69,32 +73,29 @@ async function detectCDs(text, sensitivity = 'medium') {
   let threshold;
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8; // Lower threshold for less sensitive detection
       break;
     case 'medium':
       threshold = 0.7; // Medium threshold
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6; // Higher threshold for more sensitive detection
       break;
     default:
       threshold = 0.7;
   }
 
   for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
+    const similarity = tf.tidy(() => cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]));
+    const similarityData = await similarity.data();
+    if (similarityData[0] > threshold) {
       detectedCDs.push(cdType);
     }
+    similarity.dispose();
   }
 
   textEmbedding.dispose();
   return detectedCDs;
 }
 
-export { detectCDs };
-
-// Initial model load
-if (process.env.NODE_ENV !== 'test') {
-  loadModel();
-}
+export { detectCDs, loadModel };
