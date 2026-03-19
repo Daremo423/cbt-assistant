@@ -1,6 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, within, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SensitivitySelector } from './SensitivitySelector';
 
@@ -15,7 +14,10 @@ describe('SensitivitySelector', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('Medium');
 
     // Check if all options are present (by opening the select)
-    await userEvent.click(screen.getByRole('combobox'));
+    act(() => {
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+    });
+
     const listbox = await screen.findByRole('listbox');
     expect(listbox).toBeInTheDocument();
     expect(within(listbox).getByText('Low')).toBeInTheDocument();
@@ -27,8 +29,13 @@ describe('SensitivitySelector', () => {
     const handleChange = jest.fn();
     render(<SensitivitySelector currentSensitivity="medium" onSensitivityChange={handleChange} />);
 
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByText('High'));
+    act(() => {
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByText('High'));
+    });
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith('high');
