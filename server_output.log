@@ -1,7 +1,8 @@
+npm warn exec The following package was not found and will be installed: serve@14.2.6
  INFO  Accepting connections at http://localhost:3000
- HTTP  3/23/2026 12:51:38 AM ::1 GET /
- HTTP  3/23/2026 12:51:38 AM ::1 Returned 200 in 54 ms
- HTTP  3/23/2026 12:51:38 AM ::1 GET /static/js/main.41c1c34e.js
- HTTP  3/23/2026 12:51:38 AM ::1 Returned 200 in 28 ms
+ HTTP  3/23/2026 1:33:55 AM ::1 GET /
+ HTTP  3/23/2026 1:33:55 AM ::1 Returned 200 in 264 ms
+ HTTP  3/23/2026 1:33:55 AM ::1 GET /static/js/main.29e0c94d.js
+ HTTP  3/23/2026 1:33:55 AM ::1 Returned 200 in 19 ms
 
  INFO  Gracefully shutting down. Please wait...
