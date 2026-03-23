@@ -1,0 +1,7 @@
+ INFO  Accepting connections at http://localhost:3000
+ HTTP  3/23/2026 12:51:38 AM ::1 GET /
+ HTTP  3/23/2026 12:51:38 AM ::1 Returned 200 in 54 ms
+ HTTP  3/23/2026 12:51:38 AM ::1 GET /static/js/main.41c1c34e.js
+ HTTP  3/23/2026 12:51:38 AM ::1 Returned 200 in 28 ms
+
+ INFO  Gracefully shutting down. Please wait...

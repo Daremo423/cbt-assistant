@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TranscriptionWindow } from './TranscriptionWindow';
 import { ReframeWindow } from './ReframeWindow';
 import { SensitivitySelector } from './SensitivitySelector';
@@ -10,10 +10,8 @@ import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 
 // API Key Checks (no change)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 
-if (!GEMINI_API_KEY) console.warn("GEMINI_API_KEY not set. Reframing suggestions disabled.");
 if (!DEEPGRAM_API_KEY) console.warn("DEEPGRAM_API_KEY not set. Speech-to-text disabled.");
 
 function App() {
@@ -75,7 +73,9 @@ function App() {
     setStopStreamFn(null);
   };
   
-  const highlightWords = inputText.split(' ').map(() => detectedCDs.length > 0);
+  const highlightWords = useMemo(() => {
+      return inputText.split(' ').map(() => detectedCDs.length > 0);
+  }, [inputText, detectedCDs]);
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
