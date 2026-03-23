@@ -27,7 +27,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Public Routes
-app.get("/", (req, res) => {
+app.get(/.*/, (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
   // If serving static files from React build, this root route might not be needed or should be handled by the static serving middleware
   if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
