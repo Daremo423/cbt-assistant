@@ -51,12 +51,6 @@ describe('detectCDs', () => {
     use = require('@tensorflow-models/universal-sentence-encoder');
     tf = require('@tensorflow/tfjs');
 
-    // Make mockEmbed return a copy of mockTensor with its own squeeze method that returns a defined squeezed tensor.
-    // Wait, the error is `Cannot read properties of undefined (reading 'dispose')` on `squeezedTextEmbedding.dispose()`.
-    // It means `squeezedTextEmbedding` is undefined.
-    // Why? `mockEmbed` returns `mockTensor`. `mockTensor.squeeze()` returns something.
-    // Wait, `mockTensor` is defined:
-    // const mockTensor = { squeeze: jest.fn(() => createMockSqueezedTensor()), dispose: jest.fn() };
     mockEmbed = jest.fn(() => Promise.resolve({
       squeeze: jest.fn(() => createMockSqueezedTensor()),
       dispose: jest.fn()
