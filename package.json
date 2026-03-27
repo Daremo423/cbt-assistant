@@ -16,7 +16,7 @@
     "@mui/styled-engine-sc": "^6.0.0-alpha.9",
     "@tensorflow-models/universal-sentence-encoder": "^1.0.0",
     "@tensorflow/tfjs": "^4.0.0",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
@@ -59,6 +59,15 @@
   "overrides": {
     "nth-check": "^2.0.1",
     "postcss": "^8.4.31",
-    "webpack-dev-server": "^5.2.0"
+    "webpack-dev-server": "^5.2.0",
+    "fast-xml-parser": "^5.5.6",
+    "simple-git": "^3.32.3",
+    "svgo": "^3.3.3",
+    "tar": "^7.5.11",
+    "minimatch": "^10.2.3",
+    "undici": "^7.24.0",
+    "serialize-javascript": "^7.0.3",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "underscore": "^1.13.8"
   }
 }
