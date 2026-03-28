@@ -15,7 +15,7 @@
     "@mui/material": "^5.15.1",
     "@mui/styled-engine-sc": "^6.0.0-alpha.9",
     "@tensorflow-models/universal-sentence-encoder": "^1.0.0",
-    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs": "^4.0.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",
