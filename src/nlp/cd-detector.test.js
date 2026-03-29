@@ -7,6 +7,7 @@ jest.mock('@tensorflow-models/universal-sentence-encoder', () => ({
 const createMockSqueezedTensor = (similarityValue = 0.9) => ({
   neg: jest.fn(() => createMockSqueezedTensor(similarityValue)),
   add: jest.fn(() => createMockSqueezedTensor(similarityValue)),
+  data: jest.fn(() => Promise.resolve([similarityValue])),
   dataSync: jest.fn(() => [similarityValue]),
   dispose: jest.fn(),
 });
@@ -14,6 +15,8 @@ const createMockSqueezedTensor = (similarityValue = 0.9) => ({
 const mockTensor = {
   squeeze: jest.fn(() => createMockSqueezedTensor()),
   dispose: jest.fn(),
+  embed: jest.fn(() => mockTensor),
+  data: jest.fn(() => Promise.resolve([0.9]))
 };
 
 jest.mock('@tensorflow/tfjs', () => {
@@ -21,10 +24,11 @@ jest.mock('@tensorflow/tfjs', () => {
   return {
     ...originalTf,
     mean: jest.fn((tensor) => mockTensor), // Always return mockTensor
-    metrics: {
-      ...originalTf.metrics,
+    losses: {
+      ...originalTf.losses,
       cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)), // Default high similarity
     },
+    tidy: jest.fn((fn) => fn()),
     tensor2d: jest.fn(() => mockTensor),
     equal: jest.fn(() => ({
       all: jest.fn(() => ({
@@ -47,6 +51,17 @@ describe('detectCDs', () => {
 
     mockEmbed = jest.fn(() => Promise.resolve(mockTensor));
     use.load.mockResolvedValue({ embed: mockEmbed });
+
+    // Restore mock implementations that might be cleared by Jest's resetMocks: true
+    mockTensor.squeeze.mockImplementation(() => createMockSqueezedTensor());
+    mockTensor.dispose.mockImplementation(() => {});
+    mockTensor.embed.mockImplementation(() => mockTensor);
+    mockTensor.data.mockImplementation(() => Promise.resolve([0.9]));
+
+    tf.mean.mockImplementation(() => mockTensor);
+    tf.losses.cosineDistance.mockImplementation(() => createMockSqueezedTensor(0.9));
+    tf.tidy.mockImplementation((fn) => fn());
+    tf.tensor2d.mockImplementation(() => mockTensor);
   });
 
   afterEach(() => {
@@ -55,7 +70,7 @@ describe('detectCDs', () => {
 
   test('should return an empty array if no cognitive distortions are detected', async () => {
     // Simulate low similarity for all CDs
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
+    tf.losses.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
     const text = 'This is a neutral sentence.';
     const result = await detectCDs(text);
     expect(result).toEqual([]);
@@ -68,7 +83,7 @@ describe('detectCDs', () => {
     // This requires knowing the order of CD types being checked in detectCDs
     // For simplicity, we'll make all cosine distances high enough to trigger detection
     // and then filter based on the expected outcome.
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
+    tf.losses.cosineDistance.mockImplementation((vec1, vec2) => {
       // In a real scenario, you might inspect vec1/vec2 to determine which CD is being checked
       // For now, we'll just return a high similarity for all.
       return createMockSqueezedTensor(0.95);
