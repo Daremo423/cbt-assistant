@@ -57,8 +57,11 @@
     "supertest": "^7.1.4"
   },
   "overrides": {
+    "handlebars": "^4.7.9",
     "nth-check": "^2.0.1",
     "postcss": "^8.4.31",
+    "simple-git": "^3.33.0",
+    "svgo": "^3.3.3",
     "webpack-dev-server": "^5.2.0"
   }
 }
