@@ -4,6 +4,7 @@ import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 let model;
 let cdReferenceEmbeddings = {};
+let modelLoadingPromise = null;
 
 const cdExamples = {
   'All-or-Nothing': [
@@ -34,27 +35,34 @@ const cdExamples = {
 };
 
 async function loadModel() {
-  if (!model) {
-    console.log("Loading Universal Sentence Encoder model...");
-    model = await use.load();
-    console.log("Model loaded. Generating reference embeddings...");
-    await generateReferenceEmbeddings();
-    console.log("Reference embeddings generated.");
+  if (!modelLoadingPromise) {
+    modelLoadingPromise = (async () => {
+      console.log("Loading Universal Sentence Encoder model...");
+      model = await use.load();
+      console.log("Model loaded. Generating reference embeddings...");
+      await generateReferenceEmbeddings();
+      console.log("Reference embeddings generated.");
+    })();
   }
+  return modelLoadingPromise;
 }
 
 async function generateReferenceEmbeddings() {
-  for (const cdType in cdExamples) {
-    const examples = cdExamples[cdType];
-    const embeddings = await model.embed(examples);
-    const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
-    cdReferenceEmbeddings[cdType] = averagedEmbedding;
-  }
+  const cdTypes = Object.keys(cdExamples);
+  await Promise.all(
+    cdTypes.map(async (cdType) => {
+      const examples = cdExamples[cdType];
+      const embeddings = await model.embed(examples);
+      const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
+      cdReferenceEmbeddings[cdType] = averagedEmbedding;
+      embeddings.dispose();
+    })
+  );
 }
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.tidy(() => tf.losses.cosineDistance(vec1, vec2, -1).neg().add(1));
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -65,6 +73,7 @@ async function detectCDs(text, sensitivity = 'medium') {
 
   const detectedCDs = [];
   const textEmbedding = await model.embed([text]);
+  const squeezedEmbedding = textEmbedding.squeeze();
 
   let threshold;
   switch (sensitivity) {
@@ -82,19 +91,17 @@ async function detectCDs(text, sensitivity = 'medium') {
   }
 
   for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
+    const similarity = cosineSimilarity(squeezedEmbedding, cdReferenceEmbeddings[cdType]);
     if (similarity.dataSync()[0] > threshold) {
       detectedCDs.push(cdType);
     }
+    similarity.dispose();
   }
 
+  squeezedEmbedding.dispose();
   textEmbedding.dispose();
   return detectedCDs;
 }
 
 export { detectCDs };
 
-// Initial model load
-if (process.env.NODE_ENV !== 'test') {
-  loadModel();
-}
