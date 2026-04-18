@@ -59,6 +59,10 @@
   "overrides": {
     "nth-check": "^2.0.1",
     "postcss": "^8.4.31",
-    "webpack-dev-server": "^5.2.0"
+    "webpack-dev-server": "^5.2.0",
+    "handlebars": "4.7.9",
+    "minimatch": "10.2.1",
+    "serialize-javascript": "7.0.3",
+    "simple-git": "3.32.3"
   }
 }
