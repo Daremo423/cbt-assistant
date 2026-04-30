@@ -3,6 +3,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 let model;
+let modelLoadingPromise;
 let cdReferenceEmbeddings = {};
 
 const cdExamples = {
@@ -34,27 +35,32 @@ const cdExamples = {
 };
 
 async function loadModel() {
-  if (!model) {
-    console.log("Loading Universal Sentence Encoder model...");
-    model = await use.load();
-    console.log("Model loaded. Generating reference embeddings...");
-    await generateReferenceEmbeddings();
-    console.log("Reference embeddings generated.");
+  if (model) return model;
+
+  if (!modelLoadingPromise) {
+    modelLoadingPromise = (async () => {
+      console.log("Loading Universal Sentence Encoder model...");
+      model = await use.load();
+      console.log("Model loaded. Generating reference embeddings...");
+      await generateReferenceEmbeddings();
+      console.log("Reference embeddings generated.");
+      return model;
+    })();
   }
+
+  return await modelLoadingPromise;
 }
 
 async function generateReferenceEmbeddings() {
-  for (const cdType in cdExamples) {
+  const cdTypes = Object.keys(cdExamples);
+
+  await Promise.all(cdTypes.map(async (cdType) => {
     const examples = cdExamples[cdType];
     const embeddings = await model.embed(examples);
     const averagedEmbedding = tf.mean(embeddings, 0); // Average across the examples
     cdReferenceEmbeddings[cdType] = averagedEmbedding;
-  }
-}
-
-// Function to calculate cosine similarity between two tensors
-function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+    embeddings.dispose(); // Explicit dispose
+  }));
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -65,30 +71,36 @@ async function detectCDs(text, sensitivity = 'medium') {
 
   const detectedCDs = [];
   const textEmbedding = await model.embed([text]);
+  const squeezedEmbedding = textEmbedding.squeeze();
 
   let threshold;
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8; // Lower sensitivity uses a high threshold
       break;
     case 'medium':
       threshold = 0.7; // Medium threshold
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6; // Higher sensitivity uses a low threshold
       break;
     default:
       threshold = 0.7;
   }
 
   for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
+    const similarity = tf.tidy(() => tf.losses.cosineDistance(squeezedEmbedding, cdReferenceEmbeddings[cdType], -1).neg().add(1));
+    const similarityValue = similarity.dataSync()[0];
+
+    if (similarityValue > threshold) {
       detectedCDs.push(cdType);
     }
+    similarity.dispose();
   }
 
+  squeezedEmbedding.dispose();
   textEmbedding.dispose();
+
   return detectedCDs;
 }
 
