@@ -54,7 +54,7 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.tidy(() => tf.losses.cosineDistance(vec1, vec2, -1).neg().add(1));
+  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
 }
 
 // sensitivity: 'low', 'medium', 'high'
@@ -81,17 +81,13 @@ async function detectCDs(text, sensitivity = 'medium') {
       threshold = 0.7;
   }
 
-  const squeezedTextEmbedding = textEmbedding.squeeze();
-
   for (const cdType in cdReferenceEmbeddings) {
-    const similarity = cosineSimilarity(squeezedTextEmbedding, cdReferenceEmbeddings[cdType]);
+    const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
     if (similarity.dataSync()[0] > threshold) {
       detectedCDs.push(cdType);
     }
-    similarity.dispose();
   }
 
-  squeezedTextEmbedding.dispose();
   textEmbedding.dispose();
   return detectedCDs;
 }
