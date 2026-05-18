@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TranscriptionWindow } from './TranscriptionWindow';
 import { ReframeWindow } from './ReframeWindow';
 import { SensitivitySelector } from './SensitivitySelector';
 import { detectCDs } from '../nlp/cd-detector';
 import { getReframe } from '../nlp/reframe-engine';
 import { startDeepgramStream } from '../audio/deepgram-client';
-import { Container, Typography, TextField, Button, Grid, Card, CardContent, CircularProgress, Box } from '@mui/material';
+import { Container, Typography, TextField, Button, Grid, Card, CardContent, CircularProgress, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, List, ListItem, ListItemText } from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
+import FlagIcon from '@mui/icons-material/Flag';
 
 // API Key Checks (no change)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -25,6 +26,34 @@ function App() {
   const [loadingReframe, setLoadingReframe] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stopStreamFn, setStopStreamFn] = useState(null);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(true);
+  const audioCtxRef = useRef(null);
+
+  // Audio Context for Beep
+  const playBeep = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const audioCtx = audioCtxRef.current;
+
+    // Resume context if suspended (browser policy)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // 440 Hz
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.1); // Beep for 0.1 seconds
+  };
 
   useEffect(() => {
     const detect = async () => {
@@ -37,6 +66,10 @@ function App() {
       const cds = await detectCDs(inputText, sensitivity);
       setDetectedCDs(cds);
       setLoadingCDs(false);
+
+      if (cds.length > 0) {
+        playBeep();
+      }
     };
     const handler = setTimeout(() => detect(), 500); // Debounce detection
     return () => clearTimeout(handler);
@@ -77,8 +110,35 @@ function App() {
   
   const highlightWords = inputText.split(' ').map(() => detectedCDs.length > 0);
 
+  const handleDisclaimerClose = () => {
+    setDisclaimerOpen(false);
+  };
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Dialog
+        open={disclaimerOpen}
+        onClose={handleDisclaimerClose}
+        aria-labelledby="disclaimer-dialog-title"
+        aria-describedby="disclaimer-dialog-description"
+      >
+        <DialogTitle id="disclaimer-dialog-title">
+          {"Disclaimer"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="disclaimer-dialog-description">
+            This application is for educational and informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+            <br /><br />
+            For privacy, please use headphones if you are in a public place.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDisclaimerClose} autoFocus>
+            Accept
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Typography variant="h4" component="h1" gutterBottom align="center">
         CBT Assistant
       </Typography>
@@ -129,7 +189,20 @@ function App() {
                     <Typography variant="h6">Detected Distortions</Typography>
                     {loadingCDs ? <CircularProgress /> : (
                         detectedCDs.length > 0 ? (
-                            <ul>{detectedCDs.map((cd, i) => <li key={i}>{cd}</li>)}</ul>
+                            <List dense>
+                              {detectedCDs.map((cd, i) => (
+                                <ListItem
+                                  key={i}
+                                  secondaryAction={
+                                    <IconButton edge="end" aria-label="flag" onClick={() => console.log(`Feedback: False Positive for ${cd}`)}>
+                                      <FlagIcon />
+                                    </IconButton>
+                                  }
+                                >
+                                  <ListItemText primary={cd} />
+                                </ListItem>
+                              ))}
+                            </List>
                         ) : <p>None detected.</p>
                     )}
                 </CardContent>
