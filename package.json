@@ -18,7 +18,7 @@
     "@tensorflow/tfjs": "^4.0.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
-    "body-parser": "^2.2.1",
+    "body-parser": "^2.3.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
