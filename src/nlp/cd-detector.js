@@ -52,12 +52,24 @@ async function generateReferenceEmbeddings() {
   }
 }
 
-// Function to calculate cosine similarity between two tensors
+// Function to calculate cosine similarity manually
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+    const v1 = vec1.dataSync();
+    const v2 = vec2.dataSync();
+    let dot = 0.0;
+    let norm1 = 0.0;
+    let norm2 = 0.0;
+    for (let i = 0; i < v1.length; i++) {
+        dot += v1[i] * v2[i];
+        norm1 += v1[i] * v1[i];
+        norm2 += v2[i] * v2[i];
+    }
+    return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
 }
 
 // sensitivity: 'low', 'medium', 'high'
+// Inverted logic: 'low' sensitivity uses a higher threshold to catch only obvious distortions.
+// 'high' sensitivity uses a lower threshold to catch subtle ones.
 async function detectCDs(text, sensitivity = 'medium') {
   if (!model) {
     await loadModel();
@@ -69,13 +81,13 @@ async function detectCDs(text, sensitivity = 'medium') {
   let threshold;
   switch (sensitivity) {
     case 'low':
-      threshold = 0.6; // Lower threshold for less sensitive detection
+      threshold = 0.8; // Higher threshold for less sensitive detection (fewer matches)
       break;
     case 'medium':
       threshold = 0.7; // Medium threshold
       break;
     case 'high':
-      threshold = 0.8; // Higher threshold for more sensitive detection
+      threshold = 0.6; // Lower threshold for more sensitive detection (more matches)
       break;
     default:
       threshold = 0.7;
@@ -83,7 +95,7 @@ async function detectCDs(text, sensitivity = 'medium') {
 
   for (const cdType in cdReferenceEmbeddings) {
     const similarity = cosineSimilarity(textEmbedding.squeeze(), cdReferenceEmbeddings[cdType]);
-    if (similarity.dataSync()[0] > threshold) {
+    if (similarity > threshold) {
       detectedCDs.push(cdType);
     }
   }
