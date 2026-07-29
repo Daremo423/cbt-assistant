@@ -54,7 +54,9 @@ async function generateReferenceEmbeddings() {
 
 // Function to calculate cosine similarity between two tensors
 function cosineSimilarity(vec1, vec2) {
-  return tf.metrics.cosineDistance(vec1, vec2).neg().add(1);
+  return tf.tidy(() => {
+    return tf.sum(tf.mul(vec1, vec2));
+  });
 }
 
 // sensitivity: 'low', 'medium', 'high'
