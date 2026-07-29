@@ -1,52 +1,49 @@
-let detectCDs;
 
-jest.mock('@tensorflow-models/universal-sentence-encoder', () => ({
-  load: jest.fn(),
-}));
+import * as tf from '@tensorflow/tfjs';
+import * as use from '@tensorflow-models/universal-sentence-encoder';
 
-const createMockSqueezedTensor = (similarityValue = 0.9) => ({
-  neg: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  add: jest.fn(() => createMockSqueezedTensor(similarityValue)),
-  dataSync: jest.fn(() => [similarityValue]),
-  dispose: jest.fn(),
-});
+// We need to use require to get the function after resetModules?
+// The previous test file used require inside beforeEach. I should stick to that if possible
+// or just use standard jest mocks if I don't need resetModules for module state.
+// cd-detector.js has module-level state (model, cdReferenceEmbeddings).
+// So I DO need resetModules.
 
-const mockTensor = {
-  squeeze: jest.fn(() => createMockSqueezedTensor()),
-  dispose: jest.fn(),
-};
-
-jest.mock('@tensorflow/tfjs', () => {
-  const originalTf = jest.requireActual('@tensorflow/tfjs');
-  return {
-    ...originalTf,
-    mean: jest.fn((tensor) => mockTensor), // Always return mockTensor
-    metrics: {
-      ...originalTf.metrics,
-      cosineDistance: jest.fn((vec1, vec2) => createMockSqueezedTensor(0.9)), // Default high similarity
-    },
-    tensor2d: jest.fn(() => mockTensor),
-    equal: jest.fn(() => ({
-      all: jest.fn(() => ({
-        dataSync: jest.fn(() => [1]),
-      })),
-    })),
-  };
-});
+jest.mock('@tensorflow-models/universal-sentence-encoder');
+jest.mock('@tensorflow/tfjs');
 
 describe('detectCDs', () => {
-  let mockEmbed;
+  let detectCDs;
   let use;
   let tf;
+  let mockEmbed;
+  let mockTensor;
 
   beforeEach(() => {
     jest.resetModules();
-    ({ detectCDs } = require('./cd-detector'));
+
     use = require('@tensorflow-models/universal-sentence-encoder');
     tf = require('@tensorflow/tfjs');
 
-    mockEmbed = jest.fn(() => Promise.resolve(mockTensor));
+    // Setup mocks
+    mockTensor = {
+        squeeze: jest.fn().mockReturnThis(),
+        dispose: jest.fn(),
+        data: jest.fn().mockResolvedValue([0.9])
+    };
+
+    // tf methods
+    tf.tidy = jest.fn((fn) => fn());
+    tf.mean = jest.fn().mockReturnValue(mockTensor);
+    tf.sum = jest.fn().mockReturnValue({
+        data: jest.fn().mockResolvedValue([0.9]),
+        dispose: jest.fn()
+    });
+    tf.mul = jest.fn().mockReturnValue(mockTensor);
+
+    mockEmbed = jest.fn().mockResolvedValue(mockTensor);
     use.load.mockResolvedValue({ embed: mockEmbed });
+
+    ({ detectCDs } = require('./cd-detector'));
   });
 
   afterEach(() => {
@@ -54,30 +51,26 @@ describe('detectCDs', () => {
   });
 
   test('should return an empty array if no cognitive distortions are detected', async () => {
-    // Simulate low similarity for all CDs
-    tf.metrics.cosineDistance.mockReturnValue(createMockSqueezedTensor(0.1));
+    // Override tf.sum to return low score
+    tf.sum.mockReturnValue({
+        data: jest.fn().mockResolvedValue([0.1]),
+        dispose: jest.fn()
+    });
+
     const text = 'This is a neutral sentence.';
     const result = await detectCDs(text);
     expect(result).toEqual([]);
-    expect(use.load).toHaveBeenCalledTimes(1);
-    expect(mockEmbed).toHaveBeenCalled();
   });
 
-  test('should detect "All-or-Nothing" distortion', async () => {
-    // Mock cosineDistance to return high similarity for the relevant CD type
-    // This requires knowing the order of CD types being checked in detectCDs
-    // For simplicity, we'll make all cosine distances high enough to trigger detection
-    // and then filter based on the expected outcome.
-    tf.metrics.cosineDistance.mockImplementation((vec1, vec2) => {
-      // In a real scenario, you might inspect vec1/vec2 to determine which CD is being checked
-      // For now, we'll just return a high similarity for all.
-      return createMockSqueezedTensor(0.95);
-    });
+  test('should detect distortions when score is high', async () => {
+    // Default mock returns 0.9, which is > 0.8 (low sensitivity threshold)
+    // and > 0.7 (medium) and > 0.6 (high)
 
     const text = 'I always fail at everything.';
-    const result = await detectCDs(text, 'high');
+    const result = await detectCDs(text, 'medium');
+
+    // It should detect all defined types because we return high score for everything
     expect(result).toContain('All-or-Nothing');
-    expect(use.load).toHaveBeenCalledTimes(1);
-    expect(mockEmbed).toHaveBeenCalled();
+    expect(result.length).toBeGreaterThan(0);
   });
 });

@@ -6,32 +6,43 @@ const config = require("./config");
 const users = [];
 
 const authController = {
-  signup: (req, res) => {
+  signup: async (req, res) => {
+    // Check for existing user first
+    const existingUser = users.find(u => u.username === req.body.username || u.email === req.body.email);
+    if (existingUser) {
+      return res.status(400).send({ message: "Failed! Username or Email is already in use!" });
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.password, 8);
+
     const user = {
       id: users.length + 1,
       username: req.body.username,
       email: req.body.email,
-      password: bcrypt.hashSync(req.body.password, 8),
+      password: hashedPassword,
       roles: req.body.roles || ['user']
     };
-
-    const existingUser = users.find(u => u.username === user.username || u.email === user.email);
-    if (existingUser) {
-      return res.status(400).send({ message: "Failed! Username or Email is already in use!" });
-    }
 
     users.push(user);
     res.send({ message: "User registered successfully!" });
   },
 
-  signin: (req, res) => {
+  signin: async (req, res) => {
     const user = users.find(u => u.username === req.body.username);
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
 
-    const passwordIsValid = bcrypt.compareSync(
+    // Check if user has a password (might be null for Google Auth users)
+    if (!user.password) {
+         return res.status(401).send({
+            accessToken: null,
+            message: "Invalid Password! (User might be registered via OAuth)"
+          });
+    }
+
+    const passwordIsValid = await bcrypt.compare(
       req.body.password,
       user.password
     );
