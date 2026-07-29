@@ -24,14 +24,14 @@ const authController = {
     res.send({ message: "User registered successfully!" });
   },
 
-  signin: (req, res) => {
+  signin: async (req, res) => {
     const user = users.find(u => u.username === req.body.username);
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
 
-    const passwordIsValid = bcrypt.compareSync(
+    const passwordIsValid = await bcrypt.compare(
       req.body.password,
       user.password
     );
