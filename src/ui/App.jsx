@@ -54,7 +54,8 @@ function App() {
       }
     };
     reframe();
-  }, [detectedCDs, inputText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detectedCDs]);
 
   const handleStartRecording = async () => {
     if (!DEEPGRAM_API_KEY) {
